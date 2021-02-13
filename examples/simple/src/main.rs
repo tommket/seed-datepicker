@@ -10,12 +10,7 @@ pub struct Model {
 }
 
 fn init(url: Url, orders: &mut impl Orders<Msg>) -> Model {
-    let config = PickerConfigBuilder::default()
-        .min_date(NaiveDate::from_ymd(2020, 10, 6))
-        .max_date(NaiveDate::from_ymd(2021, 10, 15))
-        .initial_date(Local::now().date().naive_local())
-        .build()
-        .unwrap();
+    let config = PickerConfigBuilder::default().build().unwrap();
     Model {
         date_picker: seed_datepicker::init(url, orders, config, Msg::DatePickerMsg),
     }
@@ -50,7 +45,6 @@ pub fn update(msg: Msg, model: &mut Model, orders: &mut impl Orders<Msg>) {
 pub fn view(model: &Model) -> Node<Msg> {
     div![
         // text before the input itself to offset it, so that the dialog should open below the textbox
-        label!["Text before"],
         input![
             C!["textbox"],
             attrs! {
