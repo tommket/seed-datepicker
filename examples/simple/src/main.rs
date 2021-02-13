@@ -51,6 +51,7 @@ pub fn view(model: &Model) -> Node<Msg> {
                 At::Value => model.date_picker.selected_date().map_or("".into(), |optval|optval.format("%e %b %Y").to_string()),
                 At::Type => "text",
                 At::ReadOnly => "",
+                At::Placeholder => "Click HERE",
             },
             ev(Ev::Click, |_| Msg::DatePickerMsg(
                 seed_datepicker::Msg::OpenDialog
