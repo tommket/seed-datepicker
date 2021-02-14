@@ -29,7 +29,6 @@ pub struct PickerConfig {
     /// chrono formatting string for the title of the month
     #[builder(default = "String::from(\"%b %Y\")", setter(into))]
     month_title_format: String,
-
     // TODO: disabled weekdays
     // TODO: disabled unique dates
     // TODO: disabled yearly periodic dates
