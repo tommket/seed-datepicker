@@ -1,10 +1,12 @@
-use chrono::{Datelike, Local, Month, NaiveDate};
+use std::collections::HashSet;
+
+use chrono::{Datelike, Local, Month, NaiveDate, Weekday};
 use num_traits::FromPrimitive;
 
 use crate::{year_group_range, DialogViewType, YearMonth};
 
 /// Configuration for the datepicker.
-#[derive(Debug, Default, Builder, Getters)]
+#[derive(Default, Builder, Getters)]
 #[builder(setter(strip_option))]
 #[builder(default)]
 #[builder(build_fn(validate = "Self::validate"))]
@@ -16,6 +18,29 @@ pub struct PickerConfig {
     /// inclusive maximal date constraint
     /// the latest date that can be selected
     max_date: Option<NaiveDate>,
+
+    /// disabled weekdays, that should not be selectable
+    disabled_weekdays: HashSet<Weekday>,
+
+    /// entire completely disabled months
+    disabled_months: HashSet<Month>,
+
+    /// entire completely disabled years
+    disabled_years: HashSet<i32>,
+
+    /// disabled monthly periodically repeating dates, so it is just a day number
+    /// starting from 1 for the first day of the month
+    /// if unique dates in a certain year should not be selectable use `disabled_unique_dates`
+    disabled_monthly_dates: HashSet<u32>,
+
+    /// disabled yearly periodically repeating dates that should not be selectable,
+    /// if unique dates in a certain year should not be selectable use `disabled_unique_dates`
+    /// it is a `Vec` since we need to iterate over it anyway, since we hae no MonthDay type
+    disabled_yearly_dates: Vec<NaiveDate>,
+
+    /// disabled unique dates with a specific year, month and day that should not be selectable,
+    /// if some periodically repeated dates should not be selectable use the correct option
+    disabled_unique_dates: HashSet<NaiveDate>,
 
     /// initializes the datepicker to this value
     initial_date: Option<NaiveDate>,
@@ -32,9 +57,6 @@ pub struct PickerConfig {
     /// chrono formatting string for the title of the month
     #[builder(default = "String::from(\"%b %Y\")", setter(into))]
     month_title_format: String,
-    // TODO: disabled weekdays
-    // TODO: disabled unique dates
-    // TODO: disabled yearly periodic dates
 }
 
 impl PickerConfigBuilder {
@@ -47,13 +69,8 @@ impl PickerConfigBuilder {
             }
             (_, _) => {}
         }
-        match (self.initial_view_type, self.selection_type) {
-            (Some(initial_view_type), Some(selection_type)) => {
-                if initial_view_type > selection_type {
-                    return Err("initial_view_type can have at most selection_type scale".into());
-                }
-            }
-            (_, _) => {}
+        if self.initial_view_type > self.selection_type {
+            return Err("initial_view_type can have at most selection_type scale".into());
         }
         // TODO: check that the initial_date is not forbidden
         Ok(())
@@ -64,6 +81,17 @@ impl PickerConfig {
     pub fn is_day_forbidden(&self, date: &NaiveDate) -> bool {
         self.min_date.map_or(false, |min_date| &min_date > date)
             || self.max_date.map_or(false, |max_date| &max_date < date)
+            || self.disabled_weekdays.contains(&date.weekday())
+            || self
+                .disabled_months
+                .contains(&Month::from_u32(date.month()).unwrap())
+            || self.disabled_years.contains(&date.year())
+            || self.disabled_unique_dates.contains(&date)
+            || self.disabled_monthly_dates.contains(&date.day())
+            || self
+                .disabled_yearly_dates
+                .iter()
+                .any(|disabled| disabled.day() == date.day() && disabled.month() == date.month())
     }
 
     pub fn is_month_forbidden(&self, year_month_info: &YearMonth) -> bool {
@@ -109,7 +137,7 @@ mod tests {
 
     use super::PickerConfig;
     use super::PickerConfigBuilder;
-    use chrono::{Duration, Month, NaiveDate};
+    use chrono::{Duration, Month, NaiveDate, Weekday};
     use num_traits::FromPrimitive;
     use proptest::prelude::*;
 
@@ -233,5 +261,83 @@ mod tests {
             .build()
             .unwrap();
         assert!(config.is_day_forbidden(&(date + Duration::days(1))))
+    }
+
+    proptest! {
+        #[test]
+        fn is_day_forbidden_disabled_weekday_not_allowed(weekday in 0..7u8, year in 1..5000i32, iso_week in 1..52u32) {
+            let disabled_weekday = Weekday::from_u8(weekday).unwrap();
+            let date = NaiveDate::from_isoywd(year, iso_week, disabled_weekday);
+            let config = PickerConfigBuilder::default()
+                .disabled_weekdays([disabled_weekday].iter().cloned().collect())
+                .build()
+                .unwrap();
+            assert!(config.is_day_forbidden(&date));
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn is_day_forbidden_disabled_month_not_allowed(month_num in 1..=12u32, year in 1..5000i32, day in 1..=28u32) {
+            let config = PickerConfigBuilder::default()
+                .disabled_months([Month::from_u32(month_num).unwrap()].iter().cloned().collect())
+                .build()
+                .unwrap();
+            assert!(config.is_day_forbidden(&NaiveDate::from_ymd(year, month_num, day)))
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn is_day_forbidden_disabled_year_not_allowed(month_num in 1..=12u32, year in 1..5000i32, day in 1..=28u32) {
+            let config = PickerConfigBuilder::default()
+                .disabled_years([year].iter().cloned().collect())
+                .build()
+                .unwrap();
+            assert!(config.is_day_forbidden(&NaiveDate::from_ymd(year, month_num, day)))
+        }
+    }
+
+    #[test]
+    fn is_day_forbidden_disabled_unique_dates_not_allowed() {
+        let date = NaiveDate::from_ymd(2020, 1, 16);
+        let config = PickerConfigBuilder::default()
+            .disabled_unique_dates([date].iter().cloned().collect())
+            .build()
+            .unwrap();
+        assert!(config.is_day_forbidden(&date))
+    }
+
+    #[test]
+    fn is_day_forbidden_disabled_unique_dates_after_a_year_allowed() {
+        let date = NaiveDate::from_ymd(2020, 1, 16);
+        let config = PickerConfigBuilder::default()
+            .disabled_unique_dates([date].iter().cloned().collect())
+            .build()
+            .unwrap();
+        assert!(!config.is_day_forbidden(&NaiveDate::from_ymd(2021, 1, 16)))
+    }
+
+    proptest! {
+        #[test]
+        fn is_day_forbidden_disabled_yearly_dates_not_allowed(year_in_disabled in 1..5000i32, year_in_input in 1..5000i32, month in 1..=12u32, day in 1..=28u32) {
+            let disabled_yearly_date = NaiveDate::from_ymd(year_in_disabled, month, day);
+            let config = PickerConfigBuilder::default()
+                .disabled_yearly_dates(vec![disabled_yearly_date])
+                .build()
+                .unwrap();
+            assert!(config.is_day_forbidden(&NaiveDate::from_ymd(year_in_input, month, day)))
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn is_day_forbidden_disabled_monthly_dates_not_allowed(year in 1..5000i32, month in 1..=12u32, day in 1..=28u32) {
+            let config = PickerConfigBuilder::default()
+                .disabled_monthly_dates([day].iter().cloned().collect())
+                .build()
+                .unwrap();
+            assert!(config.is_day_forbidden(&NaiveDate::from_ymd(year, month, day)))
+        }
     }
 }
