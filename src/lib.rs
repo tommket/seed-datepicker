@@ -19,14 +19,14 @@ extern crate derive_getters;
 extern crate derive_builder;
 
 /// Types of views for the datepicker.
-#[derive(Debug, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum DialogViewType {
-    /// 1 full month with the selection of a day
-    Days,
+    /// YEARS_IN_YEAR_SELECTION Years, from a year which modulo `% 20 == 0`
+    Years = 1,
     /// 1 full year with the selection of a month
-    Months,
-    /// YEARS_IN_YEAR_SELECTION Years, from a year which modulo 20 == 0
-    Years,
+    Months = 2,
+    /// 1 full month with the selection of a day
+    Days = 3,
 }
 
 impl Default for DialogViewType {
@@ -106,12 +106,26 @@ pub fn update<Ms: 'static>(
             orders.send_msg(on_change);
         }
         Msg::MonthSelected(new_month) => {
-            model.dialog_view_type = DialogViewType::Days;
-            model.year_month_info.month = new_month;
+            if model.config.selection_type() == &DialogViewType::Months {
+                let new_date = NaiveDate::from_ymd(
+                    model.year_month_info.year,
+                    new_month.number_from_month(),
+                    1,
+                );
+                orders.send_msg(to_msg(Msg::DateSelected(new_date)));
+            } else {
+                model.dialog_view_type = DialogViewType::Days;
+                model.year_month_info.month = new_month;
+            }
         }
         Msg::YearSelected(new_year) => {
-            model.dialog_view_type = DialogViewType::Months;
-            model.year_month_info.year = new_year;
+            if model.config.selection_type() == &DialogViewType::Years {
+                let new_date = NaiveDate::from_ymd(new_year, 1, 1);
+                orders.send_msg(to_msg(Msg::DateSelected(new_date)));
+            } else {
+                model.dialog_view_type = DialogViewType::Months;
+                model.year_month_info.year = new_year;
+            }
         }
         Msg::OpenDialog => model.dialog_opened = true,
         Msg::CloseDialog => model.dialog_opened = false,

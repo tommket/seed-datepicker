@@ -23,6 +23,9 @@ pub struct PickerConfig {
     /// initializes the view type to this value
     initial_view_type: DialogViewType,
 
+    /// selection type, to make it possible to select for example only a year, or only a month.
+    selection_type: DialogViewType,
+
     /// whether the dialog should be immediatelly opened after initalization
     initially_opened: bool,
 
@@ -40,6 +43,14 @@ impl PickerConfigBuilder {
             (Some(min_date), Some(max_date)) => {
                 if min_date > max_date {
                     return Err("min_date must be earlier or exactly at max_date".into());
+                }
+            }
+            (_, _) => {}
+        }
+        match (self.initial_view_type, self.selection_type) {
+            (Some(initial_view_type), Some(selection_type)) => {
+                if initial_view_type > selection_type {
+                    return Err("initial_view_type can have at most selection_type scale".into());
                 }
             }
             (_, _) => {}
@@ -94,7 +105,7 @@ impl PickerConfig {
 
 #[cfg(test)]
 mod tests {
-    use crate::year_month::YearMonth;
+    use crate::{year_month::YearMonth, DialogViewType};
 
     use super::PickerConfig;
     use super::PickerConfigBuilder;
@@ -122,6 +133,37 @@ mod tests {
         let config = PickerConfigBuilder::default()
             .min_date(date.clone())
             .max_date(date.clone())
+            .build();
+        assert!(config.is_ok());
+    }
+
+    #[test]
+    fn picker_config_initial_view_type_greater_than_selection_type() {
+        let config = PickerConfigBuilder::default()
+            .initial_view_type(DialogViewType::Days)
+            .selection_type(DialogViewType::Months)
+            .build();
+        assert!(config.is_err());
+        assert_eq!(
+            config.err(),
+            Some("initial_view_type can have at most selection_type scale".into())
+        );
+    }
+
+    #[test]
+    fn picker_config_initial_view_type_equal_to_selection_type() {
+        let config = PickerConfigBuilder::default()
+            .initial_view_type(DialogViewType::Months)
+            .selection_type(DialogViewType::Months)
+            .build();
+        assert!(config.is_ok());
+    }
+
+    #[test]
+    fn picker_config_initial_view_type_smaller_than_selection_type() {
+        let config = PickerConfigBuilder::default()
+            .initial_view_type(DialogViewType::Years)
+            .selection_type(DialogViewType::Months)
             .build();
         assert!(config.is_ok());
     }

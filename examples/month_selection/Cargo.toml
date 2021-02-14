@@ -1,5 +1,5 @@
 [package]
-name = "simple"
+name = "month-selection"
 version = "0.1.0"
 authors = ["Tomas Miklovic <tommket@gmail.com>"]
 edition = "2018"
