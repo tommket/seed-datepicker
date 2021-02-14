@@ -7,7 +7,6 @@ use crate::{year_group_range, DialogViewType, YearMonth};
 #[derive(Debug, Default, Builder, Getters)]
 #[builder(setter(strip_option))]
 #[builder(default)]
-#[builder(pattern = "immutable")]
 #[builder(build_fn(validate = "Self::validate"))]
 pub struct PickerConfig {
     /// inclusive minimal date constraint
@@ -26,6 +25,11 @@ pub struct PickerConfig {
 
     /// whether the dialog should be immediatelly opened after initalization
     initially_opened: bool,
+
+    /// chrono formatting string for the title of the month
+    #[builder(default = "String::from(\"%b %Y\")", setter(into))]
+    month_title_format: String,
+
     // TODO: disabled weekdays
     // TODO: disabled unique dates
     // TODO: disabled yearly periodic dates

@@ -2,9 +2,14 @@ use chrono::{prelude::*, Duration};
 use config::PickerConfig;
 use num_traits::FromPrimitive;
 use seed::{prelude::*, *};
+use style_names::{
+    BODY, BUTTON, CLOSE, GRID_HEADER, HEADER, NEXT, OTHER_MONTH, PREVIOUS, SEED_DATEPICKER,
+    SELECTABLE, SELECTED, TITLE, UNAVAILABLE,
+};
 use year_month::{year_group_end, year_group_range, year_group_start, YearMonth};
 
 pub mod config;
+mod style_names;
 mod year_month;
 
 #[macro_use]
@@ -140,7 +145,7 @@ pub fn view<Ms: 'static>(
     to_msg: impl FnOnce(Msg) -> Ms + Clone + 'static,
 ) -> Node<Ms> {
     IF!(model.dialog_opened => div![
-        C!["seed-datepicker"],
+        C![SEED_DATEPICKER],
         view_dialog_header(model, to_msg.clone()),
         view_dialog_body(model, to_msg),
     ])
@@ -152,9 +157,9 @@ fn view_dialog_header<Ms: 'static>(
     to_msg: impl FnOnce(Msg) -> Ms + Clone + 'static,
 ) -> Node<Ms> {
     div![
-        C!["header"],
+        C![HEADER],
         button![
-            C!["button", "previous"],
+            C![BUTTON, PREVIOUS],
             style! {
                 St::Visibility => if should_display_previous_button(model) { "visible" } else {"hidden"},
             },
@@ -165,7 +170,7 @@ fn view_dialog_header<Ms: 'static>(
             }),
         ],
         span![
-            C!["title"],
+            C![TITLE],
             attrs! {
                 At::from("role") => "heading",
             },
@@ -176,7 +181,7 @@ fn view_dialog_header<Ms: 'static>(
             }),
         ],
         button![
-            C!["button", "next"],
+            C![BUTTON, NEXT],
             style! {
                 St::Visibility => if should_display_next_button(model) { "visible" } else { "hidden" },
             },
@@ -187,7 +192,7 @@ fn view_dialog_header<Ms: 'static>(
             }),
         ],
         button![
-            C!["button", "close"],
+            C![BUTTON, CLOSE],
             "x",
             ev(Ev::Click, |_| to_msg(Msg::CloseDialog)),
         ],
@@ -199,7 +204,7 @@ fn create_dialog_title_text(model: &Model) -> String {
         DialogViewType::Days => model
             .year_month_info
             .first_day_of_month()
-            .format("%b %Y")
+            .format(model.config.month_title_format())
             .to_string(),
         DialogViewType::Months => model
             .year_month_info
@@ -262,7 +267,7 @@ fn view_dialog_years<Ms: 'static>(
         .collect();
 
     div![
-        C!["body"],
+        C![BODY],
         style! {
             St::GridTemplateColumns => "1fr ".repeat(4),
         },
@@ -284,11 +289,11 @@ fn view_year_cell<Ms: 'static>(
         year.to_string(),
         C![
             if is_year_forbidden {
-                "unavailable"
+                UNAVAILABLE
             } else {
-                "selectable"
+                SELECTABLE
             },
-            IF!(is_year_selected => "selected"),
+            IF!(is_year_selected => SELECTED),
         ],
         attrs! {
             At::from("role") => "gridcell",
@@ -317,7 +322,7 @@ fn view_dialog_months<Ms: 'static>(
         .collect();
 
     div![
-        C!["body"],
+        C![BODY],
         style! {
             St::GridTemplateColumns => "1fr ".repeat(3),
         },
@@ -339,11 +344,11 @@ fn view_month_cell<Ms: 'static>(
         year_month_info.month.name(),
         C![
             if is_month_forbidden {
-                "unavailable"
+                UNAVAILABLE
             } else {
-                "selectable"
+                SELECTABLE
             },
-            IF!(is_month_selected => "selected"),
+            IF!(is_month_selected => SELECTED),
         ],
         attrs! {
             At::from("role") => "gridcell",
@@ -386,7 +391,7 @@ fn view_dialog_days<Ms: 'static>(
 fn view_weekday_name<Ms: 'static>(day: Weekday) -> Node<Ms> {
     span![
         day.to_string(),
-        C!["title"],
+        C![GRID_HEADER],
         attrs! {
             At::from("role") => "columnheader",
         },
@@ -405,12 +410,12 @@ fn view_day_cell<Ms: 'static>(
         date.day().to_string(),
         C![
             if is_day_forbidden {
-                "unavailable"
+                UNAVAILABLE
             } else {
-                "selectable"
+                SELECTABLE
             },
-            IF!(date.month() != model.year_month_info.month.number_from_month() => "otherMonth"),
-            IF!(is_date_selected => "selected"),
+            IF!(date.month() != model.year_month_info.month.number_from_month() => OTHER_MONTH),
+            IF!(is_date_selected => SELECTED),
         ],
         attrs! {
             At::from("role") => "gridcell",
