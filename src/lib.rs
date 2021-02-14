@@ -71,7 +71,7 @@ pub fn init<Ms: 'static>(
         selected_date: *config.initial_date(),
         dialog_opened: *config.initially_opened(),
         year_month_info: config.guess_allowed_year_month(),
-        dialog_view_type: config.initial_view_type().clone(),
+        dialog_view_type: *config.initial_view_type(),
         config,
     }
 }
