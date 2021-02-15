@@ -22,3 +22,8 @@ derive-getters = "0.2"
 
 [dev-dependencies]
 proptest = "0.10"
+criterion = "0.3"
+
+[[bench]]
+name = "config_benchmark"
+harness = false
