@@ -1,16 +1,16 @@
+use chrono::prelude::*;
 use std::collections::HashSet;
 
-use chrono::{Datelike, Local, Month, NaiveDate, Weekday};
 use num_traits::FromPrimitive;
 
-use crate::{year_group_range, DialogViewType, YearMonth};
+use crate::{year_group_range, YearMonth};
 
-/// Configuration for the datepicker.
-#[derive(Default, Debug, Builder, Getters)]
+/// Date constraints configuration
+#[derive(Default, Debug, Clone, Builder)]
 #[builder(setter(strip_option))]
 #[builder(default)]
 #[builder(build_fn(validate = "Self::validate"))]
-pub struct PickerConfig {
+pub struct DateConstraints {
     /// inclusive minimal date constraint
     /// the earliest date that can be selected
     min_date: Option<NaiveDate>,
@@ -41,25 +41,9 @@ pub struct PickerConfig {
     /// disabled unique dates with a specific year, month and day that should not be selectable,
     /// if some periodically repeated dates should not be selectable use the correct option
     disabled_unique_dates: HashSet<NaiveDate>,
-
-    /// initializes the datepicker to this value
-    initial_date: Option<NaiveDate>,
-
-    /// initializes the view type to this value
-    initial_view_type: DialogViewType,
-
-    /// selection type, to make it possible to select for example only a year, or only a month.
-    selection_type: DialogViewType,
-
-    /// whether the dialog should be immediatelly opened after initalization
-    initially_opened: bool,
-
-    /// chrono formatting string for the title of the month
-    #[builder(default = "String::from(\"%b %Y\")", setter(into))]
-    month_title_format: String,
 }
 
-impl PickerConfigBuilder {
+impl DateConstraintsBuilder {
     fn validate(&self) -> Result<(), String> {
         match (self.min_date, self.max_date) {
             (Some(min_date), Some(max_date)) => {
@@ -69,15 +53,11 @@ impl PickerConfigBuilder {
             }
             (_, _) => {}
         }
-        if self.initial_view_type > self.selection_type {
-            return Err("initial_view_type can have at most selection_type scale".into());
-        }
-        // TODO: check that the initial_date is not forbidden
         Ok(())
     }
 }
 
-impl PickerConfig {
+impl DateConstraints {
     pub fn is_day_forbidden(&self, date: &NaiveDate) -> bool {
         self.min_date.map_or(false, |min_date| &min_date > date)
             || self.max_date.map_or(false, |max_date| &max_date < date)
@@ -119,31 +99,49 @@ impl PickerConfig {
     pub fn is_year_group_forbidden(&self, year: i32) -> bool {
         year_group_range(year).all(|year| self.is_year_forbidden(year))
     }
-
-    pub fn guess_allowed_year_month(&self) -> YearMonth {
-        if let Some(init_date) = self.initial_date {
-            return init_date.into();
-        }
-        // if none of the above constraints matched use the current_date
-        let current_date = Local::now().date().naive_local();
-        current_date.into()
-    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{year_month::YearMonth, DialogViewType};
+    use crate::year_month::YearMonth;
 
-    use super::PickerConfig;
-    use super::PickerConfigBuilder;
-    use chrono::{Duration, Month, NaiveDate, Weekday};
+    use super::DateConstraints;
+    use super::DateConstraintsBuilder;
+    use chrono::{prelude::*, Duration};
     use num_traits::FromPrimitive;
     use proptest::prelude::*;
+
+    proptest! {
+        #[test]
+        fn is_day_forbidden_default_no_bounds(day in 1..365*5000i32) {
+            let date = NaiveDate::from_num_days_from_ce(day);
+            assert!(!DateConstraints::default().is_day_forbidden(&date))
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn is_month_forbidden_default_no_bounds(year in 1..5000i32, month_num in 1..=12u32) {
+            let month = Month::from_u32(month_num).unwrap();
+            let year_month_info = YearMonth {
+                year,
+                month,
+            };
+            assert!(!DateConstraints::default().is_month_forbidden(&year_month_info))
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn is_year_forbidden_default_no_bounds(year in 1..5000i32) {
+            assert!(!DateConstraints::default().is_year_forbidden(year))
+        }
+    }
 
     #[test]
     fn picker_config_min_date_greater_than_max_date() {
         let date = NaiveDate::from_ymd(2020, 10, 15);
-        let config = PickerConfigBuilder::default()
+        let config = DateConstraintsBuilder::default()
             .min_date(date.clone())
             .max_date(date.clone() - Duration::days(1))
             .build();
@@ -157,7 +155,7 @@ mod tests {
     #[test]
     fn picker_config_min_date_equals_max_date() {
         let date = NaiveDate::from_ymd(2020, 10, 15);
-        let config = PickerConfigBuilder::default()
+        let config = DateConstraintsBuilder::default()
             .min_date(date.clone())
             .max_date(date.clone())
             .build();
@@ -165,67 +163,9 @@ mod tests {
     }
 
     #[test]
-    fn picker_config_initial_view_type_greater_than_selection_type() {
-        let config = PickerConfigBuilder::default()
-            .initial_view_type(DialogViewType::Days)
-            .selection_type(DialogViewType::Months)
-            .build();
-        assert!(config.is_err());
-        assert_eq!(
-            config.err(),
-            Some("initial_view_type can have at most selection_type scale".into())
-        );
-    }
-
-    #[test]
-    fn picker_config_initial_view_type_equal_to_selection_type() {
-        let config = PickerConfigBuilder::default()
-            .initial_view_type(DialogViewType::Months)
-            .selection_type(DialogViewType::Months)
-            .build();
-        assert!(config.is_ok());
-    }
-
-    #[test]
-    fn picker_config_initial_view_type_smaller_than_selection_type() {
-        let config = PickerConfigBuilder::default()
-            .initial_view_type(DialogViewType::Years)
-            .selection_type(DialogViewType::Months)
-            .build();
-        assert!(config.is_ok());
-    }
-
-    proptest! {
-        #[test]
-        fn is_day_forbidden_default_no_bounds(day in 1..365*5000i32) {
-            let date = NaiveDate::from_num_days_from_ce(day);
-            assert!(!PickerConfig::default().is_day_forbidden(&date))
-        }
-    }
-
-    proptest! {
-        #[test]
-        fn is_month_forbidden_default_no_bounds(year in 1..5000i32, month_num in 1..=12u32) {
-            let month = Month::from_u32(month_num).unwrap();
-            let year_month_info = YearMonth {
-                year,
-                month,
-            };
-            assert!(!PickerConfig::default().is_month_forbidden(&year_month_info))
-        }
-    }
-
-    proptest! {
-        #[test]
-        fn is_year_forbidden_default_no_bounds(year in 1..5000i32) {
-            assert!(!PickerConfig::default().is_year_forbidden(year))
-        }
-    }
-
-    #[test]
     fn is_day_forbidden_at_min_date_allowed() {
         let date = NaiveDate::from_ymd(2020, 10, 15);
-        let config = PickerConfigBuilder::default()
+        let config = DateConstraintsBuilder::default()
             .min_date(date.clone())
             .build()
             .unwrap();
@@ -235,7 +175,7 @@ mod tests {
     #[test]
     fn is_day_forbidden_before_min_date_not_allowed() {
         let date = NaiveDate::from_ymd(2020, 10, 15);
-        let config = PickerConfigBuilder::default()
+        let config = DateConstraintsBuilder::default()
             .min_date(date.clone())
             .build()
             .unwrap();
@@ -245,7 +185,7 @@ mod tests {
     #[test]
     fn is_day_forbidden_at_max_date_allowed() {
         let date = NaiveDate::from_ymd(2020, 10, 15);
-        let config = PickerConfigBuilder::default()
+        let config = DateConstraintsBuilder::default()
             .max_date(date.clone())
             .build()
             .unwrap();
@@ -255,7 +195,7 @@ mod tests {
     #[test]
     fn is_day_forbidden_after_max_date_not_allowed() {
         let date = NaiveDate::from_ymd(2020, 10, 15);
-        let config = PickerConfigBuilder::default()
+        let config = DateConstraintsBuilder::default()
             .max_date(date.clone())
             .build()
             .unwrap();
@@ -267,7 +207,7 @@ mod tests {
         fn is_day_forbidden_disabled_weekday_not_allowed(weekday in 0..7u8, year in 1..5000i32, iso_week in 1..52u32) {
             let disabled_weekday = Weekday::from_u8(weekday).unwrap();
             let date = NaiveDate::from_isoywd(year, iso_week, disabled_weekday);
-            let config = PickerConfigBuilder::default()
+            let config = DateConstraintsBuilder::default()
                 .disabled_weekdays([disabled_weekday].iter().cloned().collect())
                 .build()
                 .unwrap();
@@ -278,7 +218,7 @@ mod tests {
     proptest! {
         #[test]
         fn is_day_forbidden_disabled_month_not_allowed(month_num in 1..=12u32, year in 1..5000i32, day in 1..=28u32) {
-            let config = PickerConfigBuilder::default()
+            let config = DateConstraintsBuilder::default()
                 .disabled_months([Month::from_u32(month_num).unwrap()].iter().cloned().collect())
                 .build()
                 .unwrap();
@@ -289,7 +229,7 @@ mod tests {
     proptest! {
         #[test]
         fn is_day_forbidden_disabled_year_not_allowed(month_num in 1..=12u32, year in 1..5000i32, day in 1..=28u32) {
-            let config = PickerConfigBuilder::default()
+            let config = DateConstraintsBuilder::default()
                 .disabled_years([year].iter().cloned().collect())
                 .build()
                 .unwrap();
@@ -300,7 +240,7 @@ mod tests {
     #[test]
     fn is_day_forbidden_disabled_unique_dates_not_allowed() {
         let date = NaiveDate::from_ymd(2020, 1, 16);
-        let config = PickerConfigBuilder::default()
+        let config = DateConstraintsBuilder::default()
             .disabled_unique_dates([date].iter().cloned().collect())
             .build()
             .unwrap();
@@ -310,7 +250,7 @@ mod tests {
     #[test]
     fn is_day_forbidden_disabled_unique_dates_after_a_year_allowed() {
         let date = NaiveDate::from_ymd(2020, 1, 16);
-        let config = PickerConfigBuilder::default()
+        let config = DateConstraintsBuilder::default()
             .disabled_unique_dates([date].iter().cloned().collect())
             .build()
             .unwrap();
@@ -321,7 +261,7 @@ mod tests {
         #[test]
         fn is_day_forbidden_disabled_yearly_dates_not_allowed(year_in_disabled in 1..5000i32, year_in_input in 1..5000i32, month in 1..=12u32, day in 1..=28u32) {
             let disabled_yearly_date = NaiveDate::from_ymd(year_in_disabled, month, day);
-            let config = PickerConfigBuilder::default()
+            let config = DateConstraintsBuilder::default()
                 .disabled_yearly_dates(vec![disabled_yearly_date])
                 .build()
                 .unwrap();
@@ -332,7 +272,7 @@ mod tests {
     proptest! {
         #[test]
         fn is_day_forbidden_disabled_monthly_dates_not_allowed(year in 1..5000i32, month in 1..=12u32, day in 1..=28u32) {
-            let config = PickerConfigBuilder::default()
+            let config = DateConstraintsBuilder::default()
                 .disabled_monthly_dates([day].iter().cloned().collect())
                 .build()
                 .unwrap();
@@ -344,7 +284,7 @@ mod tests {
         #[test]
         fn is_month_forbidden_disabled_months_not_allowed(year in 1..5000i32, month_num in 1..=12u32) {
             let month = Month::from_u32(month_num).unwrap();
-            let config = PickerConfigBuilder::default()
+            let config = DateConstraintsBuilder::default()
                 .disabled_months([month].iter().cloned().collect())
                 .build()
                 .unwrap();
@@ -359,7 +299,7 @@ mod tests {
         #[test]
         fn is_month_forbidden_disabled_years_not_allowed(year in 1..5000i32, month_num in 1..=12u32) {
             let month = Month::from_u32(month_num).unwrap();
-            let config = PickerConfigBuilder::default()
+            let config = DateConstraintsBuilder::default()
                 .disabled_years([year].iter().cloned().collect())
                 .build()
                 .unwrap();
@@ -373,7 +313,7 @@ mod tests {
     proptest! {
         #[test]
         fn is_year_forbidden_disabled_years_not_allowed(year in 1..5000i32) {
-            let config = PickerConfigBuilder::default()
+            let config = DateConstraintsBuilder::default()
                 .disabled_years([year].iter().cloned().collect())
                 .build()
                 .unwrap();

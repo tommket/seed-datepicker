@@ -27,3 +27,17 @@ criterion = "0.3"
 [[bench]]
 name = "config_benchmark"
 harness = false
+
+# To make the CI check also the examples.
+# TODO: change the CI to try to build the examples using Trunk
+[[example]]
+name = "simple"
+path = "examples/simple"
+
+[[example]]
+name = "month_selection"
+path = "examples/month_selection"
+
+[[example]]
+name = "constraints"
+path = "examples/constraints"

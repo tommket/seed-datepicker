@@ -1,6 +1,8 @@
 use chrono::{Month, NaiveDate, Weekday};
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use seed_datepicker::config::{PickerConfig, PickerConfigBuilder};
+use seed_datepicker::config::{
+    date_constraints::DateConstraintsBuilder, PickerConfig, PickerConfigBuilder,
+};
 
 criterion_group!(
     benches,
@@ -19,18 +21,23 @@ criterion_main!(benches);
 fn create_config() -> PickerConfig {
     PickerConfigBuilder::default()
         .initial_date(NaiveDate::from_ymd(2020, 12, 15))
-        .min_date(NaiveDate::from_ymd(2020, 12, 1))
-        .max_date(NaiveDate::from_ymd(2022, 12, 14))
-        .disabled_weekdays([Weekday::Sat, Weekday::Sun].iter().cloned().collect())
-        .disabled_months([Month::July, Month::August].iter().cloned().collect())
-        .disabled_years([2021].iter().cloned().collect())
-        .disabled_monthly_dates([13].iter().cloned().collect())
-        .disabled_yearly_dates(vec![
-            NaiveDate::from_ymd(1, 12, 24),
-            NaiveDate::from_ymd(1, 12, 25),
-            NaiveDate::from_ymd(1, 12, 26),
-        ])
-        .disabled_unique_dates([NaiveDate::from_ymd(2020, 12, 8)].iter().cloned().collect())
+        .date_constraints(
+            DateConstraintsBuilder::default()
+                .min_date(NaiveDate::from_ymd(2020, 12, 1))
+                .max_date(NaiveDate::from_ymd(2022, 12, 14))
+                .disabled_weekdays([Weekday::Sat, Weekday::Sun].iter().cloned().collect())
+                .disabled_months([Month::July, Month::August].iter().cloned().collect())
+                .disabled_years([2021].iter().cloned().collect())
+                .disabled_monthly_dates([13].iter().cloned().collect())
+                .disabled_yearly_dates(vec![
+                    NaiveDate::from_ymd(1, 12, 24),
+                    NaiveDate::from_ymd(1, 12, 25),
+                    NaiveDate::from_ymd(1, 12, 26),
+                ])
+                .disabled_unique_dates([NaiveDate::from_ymd(2020, 12, 8)].iter().cloned().collect())
+                .build()
+                .unwrap(),
+        )
         .build()
         .unwrap()
 }
