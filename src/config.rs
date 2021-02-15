@@ -6,7 +6,7 @@ use num_traits::FromPrimitive;
 use crate::{year_group_range, DialogViewType, YearMonth};
 
 /// Configuration for the datepicker.
-#[derive(Default, Builder, Getters)]
+#[derive(Default, Debug, Builder, Getters)]
 #[builder(setter(strip_option))]
 #[builder(default)]
 #[builder(build_fn(validate = "Self::validate"))]
@@ -22,7 +22,7 @@ pub struct PickerConfig {
     /// disabled weekdays, that should not be selectable
     disabled_weekdays: HashSet<Weekday>,
 
-    /// entire completely disabled months
+    /// entire completely disabled months in every year
     disabled_months: HashSet<Month>,
 
     /// entire completely disabled years
@@ -95,20 +95,25 @@ impl PickerConfig {
     }
 
     pub fn is_month_forbidden(&self, year_month_info: &YearMonth) -> bool {
-        year_month_info
-            .first_day_of_month()
-            .iter_days()
-            .take_while(|date| date.month() == year_month_info.month.number_from_month())
-            .all(|date| self.is_day_forbidden(&date))
+        self.disabled_years.contains(&year_month_info.year)
+            || self.disabled_months.contains(&year_month_info.month)
+            || year_month_info
+                .first_day_of_month()
+                .iter_days()
+                .take_while(|date| date.month() == year_month_info.month.number_from_month())
+                .all(|date| self.is_day_forbidden(&date))
     }
 
     pub fn is_year_forbidden(&self, year: i32) -> bool {
-        (Month::January.number_from_month()..=Month::December.number_from_month()).all(|month| {
-            self.is_month_forbidden(&YearMonth {
-                year,
-                month: Month::from_u32(month).unwrap(),
-            })
-        })
+        self.disabled_years.contains(&year)
+            || (Month::January.number_from_month()..=Month::December.number_from_month()).all(
+                |month| {
+                    self.is_month_forbidden(&YearMonth {
+                        year,
+                        month: Month::from_u32(month).unwrap(),
+                    })
+                },
+            )
     }
 
     pub fn is_year_group_forbidden(&self, year: i32) -> bool {
@@ -117,17 +122,11 @@ impl PickerConfig {
 
     pub fn guess_allowed_year_month(&self) -> YearMonth {
         if let Some(init_date) = self.initial_date {
-            return YearMonth {
-                year: init_date.year(),
-                month: Month::from_u32(init_date.month()).unwrap(),
-            };
+            return init_date.into();
         }
-        // if there were no other constraints use the current_date
+        // if none of the above constraints matched use the current_date
         let current_date = Local::now().date().naive_local();
-        YearMonth {
-            year: current_date.year(),
-            month: Month::from_u32(current_date.month()).unwrap(),
-        }
+        current_date.into()
     }
 }
 
@@ -338,6 +337,47 @@ mod tests {
                 .build()
                 .unwrap();
             assert!(config.is_day_forbidden(&NaiveDate::from_ymd(year, month, day)))
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn is_month_forbidden_disabled_months_not_allowed(year in 1..5000i32, month_num in 1..=12u32) {
+            let month = Month::from_u32(month_num).unwrap();
+            let config = PickerConfigBuilder::default()
+                .disabled_months([month].iter().cloned().collect())
+                .build()
+                .unwrap();
+            assert!(config.is_month_forbidden(&YearMonth {
+                year,
+                month
+            }))
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn is_month_forbidden_disabled_years_not_allowed(year in 1..5000i32, month_num in 1..=12u32) {
+            let month = Month::from_u32(month_num).unwrap();
+            let config = PickerConfigBuilder::default()
+                .disabled_years([year].iter().cloned().collect())
+                .build()
+                .unwrap();
+            assert!(config.is_month_forbidden(&YearMonth {
+                year,
+                month
+            }))
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn is_year_forbidden_disabled_years_not_allowed(year in 1..5000i32) {
+            let config = PickerConfigBuilder::default()
+                .disabled_years([year].iter().cloned().collect())
+                .build()
+                .unwrap();
+            assert!(config.is_year_forbidden(year))
         }
     }
 }

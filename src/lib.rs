@@ -58,6 +58,10 @@ impl Model {
     pub fn selected_date(&self) -> &Option<NaiveDate> {
         &self.selected_date
     }
+
+    pub fn config(&self) -> &PickerConfig {
+        &self.config
+    }
 }
 
 /// `init` describes what should happen when your app started.

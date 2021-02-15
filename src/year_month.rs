@@ -40,7 +40,7 @@ impl YearMonth {
             } else {
                 self.year
             },
-            month: self.month.pred(),
+            month: self.month.succ(),
         }
     }
 
