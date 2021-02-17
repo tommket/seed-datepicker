@@ -1,9 +1,11 @@
 pub mod date_constraints;
 
 use crate::{year_month::YearMonth, DialogViewType};
-
 use chrono::prelude::*;
 
+use mockall_double::double;
+
+#[double]
 use self::date_constraints::DateConstraints;
 
 /// Configuration for the datepicker.
@@ -38,6 +40,17 @@ impl PickerConfigBuilder {
         if self.initial_view_type > self.selection_type {
             return Err("initial_view_type can have at most selection_type scale".into());
         }
+        match (self.initial_date, &self.date_constraints) {
+            (Some(Some(initial_date)), Some(date_constraints)) => {
+                if date_constraints.is_day_forbidden(&initial_date) {
+                    return Err(format!(
+                        "The initial_date {:?} is forbidden by the date_constraints.",
+                        initial_date
+                    ));
+                }
+            }
+            (_, _) => {}
+        }
         Ok(())
     }
 }
@@ -71,7 +84,8 @@ impl PickerConfig {
 
 #[cfg(test)]
 mod tests {
-    use super::PickerConfigBuilder;
+    use super::date_constraints::MockDateConstraints;
+    use super::*;
     use crate::DialogViewType;
 
     #[test]
@@ -103,5 +117,22 @@ mod tests {
             .selection_type(DialogViewType::Months)
             .build();
         assert!(config.is_ok());
+    }
+
+    #[test]
+    fn picker_config_initial_date_forbidden() {
+        let mut date_constraints_mock = MockDateConstraints::new();
+        date_constraints_mock
+            .expect_is_day_forbidden()
+            .returning(|_| true);
+        let config = PickerConfigBuilder::default()
+            .initial_date(NaiveDate::from_ymd(2020, 1, 1))
+            .date_constraints(date_constraints_mock)
+            .build();
+        assert!(config.is_err());
+        assert_eq!(
+            config.err(),
+            Some("The initial_date 2020-01-01 is forbidden by the date_constraints.".into())
+        );
     }
 }

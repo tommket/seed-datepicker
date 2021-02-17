@@ -1,5 +1,6 @@
 use chrono::prelude::*;
 use seed::{prelude::*, *};
+use seed_datepicker::config::date_constraints::DateConstraintsBuilder;
 use seed_datepicker::config::PickerConfigBuilder;
 
 type DatePickerModel = seed_datepicker::Model;

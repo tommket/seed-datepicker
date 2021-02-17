@@ -19,10 +19,15 @@ chrono = { version = "0.4", features = ["wasmbind"] }
 num-traits = { version = "0.2", default-features = false }
 derive_builder = "0.9"
 derive-getters = "0.2"
+cfg-if = "1.0"
+
+# just some cfg macros for automocking
+mockall_double = "0.2"
 
 [dev-dependencies]
 proptest = "0.10"
 criterion = "0.3"
+mockall = "0.9"
 
 [[bench]]
 name = "config_benchmark"
