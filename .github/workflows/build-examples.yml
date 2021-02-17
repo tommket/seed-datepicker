@@ -29,21 +29,14 @@ jobs:
           cargo install trunk wasm-bindgen-cli
       - name: Build examples
         run: |
-          output="$(pwd)/dist"
           for path in examples/*; do
             if [[ ! -d $path ]]; then
               continue
             fi
             example=$(basename "$path")
-            # multi_thread doesn't work yet. See <https://github.com/thedodd/trunk/issues/40>.
-            if [[ "$example" == "multi_thread" ]]; then
-              continue
-            fi
             echo "building: $example"
             (
               cd "$path"
-              dist_dir="$output/$example"
-              mkdir - p "$dist_dir"
-              trunk build --release --dist "$dist_dir" --public-url "$PUBLIC_URL_PREFIX/$example"
+              trunk build
             )
           done
