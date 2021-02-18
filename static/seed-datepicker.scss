@@ -1,9 +1,20 @@
 .seed-datepicker {
+    @media (max-width: 640px) {
+        width: 95%;
+        font-size: MAX(3vw,3mm);
+    }
+    @media (max-width: 1023px) {
+        width: 70%;
+        font-size: MAX(2.5vw,3mm);
+    }
+    @media (min-width: 1024px) {
+        width: 30%;
+        font-size: MAX(1.5vw,3mm);
+    }
     display: flex;
     flex-direction: column;
     position: absolute;
     border: 2px solid #1c3262;
-    font-size: 11px;
     padding: 3px;
     background: #fff;
     line-height: normal;
@@ -26,7 +37,8 @@
             background: #fff;
             color: #000;
             cursor: pointer;
-            font-size: medium;
+            width: 15%;
+            font-size: 130%;
         }
         // possible other button customizations through classes:
         // .previous
@@ -35,8 +47,6 @@
         // You can for example replace the characters with some images.
     }
     .body {
-        width: 250px;
-        height: 250px;
         display: grid;
         grid-auto-flow: row;
         gap: 3px;
@@ -70,7 +80,8 @@
         }
         // every cell of the grid
         span {
-            padding-top: 25%;
+            padding-top: 10%;
+            padding-bottom: 10%;
             text-align: center;
         }
     }

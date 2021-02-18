@@ -49,6 +49,9 @@ pub struct Model {
     /// dialog type
     dialog_view_type: DialogViewType,
 
+    /// dialog position style, describing the position of the dialog
+    dialog_position_style: Option<Style>,
+
     /// configuration of the picker, should be passed in during init and not modified later
     config: PickerConfig,
 }
@@ -76,6 +79,7 @@ pub fn init<Ms: 'static>(
         dialog_opened: *config.initially_opened(),
         year_month_info: config.guess_allowed_year_month(),
         dialog_view_type: *config.initial_view_type(),
+        dialog_position_style: None,
         config,
     }
 }
@@ -85,7 +89,8 @@ pub enum Msg {
     DateSelected(NaiveDate),
     MonthSelected(Month),
     YearSelected(i32),
-    OpenDialog,
+    /// open the dialog, optionally at the given (left, top) position
+    OpenDialog(Option<(String, String)>),
     CloseDialog,
     PreviousButtonClicked,
     NextButtonClicked,
@@ -131,7 +136,15 @@ pub fn update<Ms: 'static>(
                 model.year_month_info.year = new_year;
             }
         }
-        Msg::OpenDialog => model.dialog_opened = true,
+        Msg::OpenDialog(position) => {
+            model.dialog_opened = true;
+            if let Some((left, top)) = position {
+                model.dialog_position_style = Some(style! {
+                    St::Left => left,
+                    St::Top => top,
+                });
+            }
+        }
         Msg::CloseDialog => model.dialog_opened = false,
         Msg::PreviousButtonClicked => {
             model.year_month_info = match model.dialog_view_type {
@@ -164,6 +177,7 @@ pub fn view<Ms: 'static>(
 ) -> Node<Ms> {
     IF!(model.dialog_opened => div![
         C![SEED_DATEPICKER],
+        model.dialog_position_style.as_ref(),
         view_dialog_header(model, to_msg.clone()),
         view_dialog_body(model, to_msg),
     ])

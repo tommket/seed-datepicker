@@ -1,4 +1,3 @@
-use chrono::prelude::*;
 use seed::{prelude::*, *};
 use seed_datepicker::config::PickerConfigBuilder;
 
@@ -53,12 +52,25 @@ pub fn view(model: &Model) -> Node<Msg> {
                 At::ReadOnly => "",
                 At::Placeholder => "Click HERE",
             },
-            ev(Ev::Click, |_| Msg::DatePickerMsg(
-                seed_datepicker::Msg::OpenDialog(None)
-            )),
+            style! {
+                St::Position => "absolute",
+                St::Left => percent(20),
+                St::Top => percent(10),
+            },
+            ev(Ev::Click, |event| {
+                let (x, y) = get_click_event_client_position(event);
+                Msg::DatePickerMsg(seed_datepicker::Msg::OpenDialog(Some((px(x), px(y)))))
+            }),
         ],
         seed_datepicker::view(&model.date_picker, Msg::DatePickerMsg),
     ]
+}
+
+use crate::web_sys::Event;
+
+fn get_click_event_client_position(event: Event) -> (i32, i32) {
+    let mouse_event: web_sys::MouseEvent = event.unchecked_into();
+    (mouse_event.client_x(), mouse_event.client_y())
 }
 
 pub fn main() {

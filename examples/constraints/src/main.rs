@@ -75,7 +75,7 @@ pub fn view(model: &Model) -> Node<Msg> {
                 At::Placeholder => "Click HERE",
             },
             ev(Ev::Click, |_| Msg::DatePickerMsg(
-                seed_datepicker::Msg::OpenDialog
+                seed_datepicker::Msg::OpenDialog(None)
             )),
         ],
         seed_datepicker::view(&model.date_picker, Msg::DatePickerMsg),
