@@ -31,5 +31,5 @@ mockall = "0.9"
 
 [[bench]]
 name = "config_benchmark"
-path = "benches"
+path = "benches/config_benchmark.rs"
 harness = false
