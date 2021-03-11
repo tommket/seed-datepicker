@@ -25,7 +25,7 @@ cfg-if = "1.0"
 mockall_double = "0.2"
 
 [dev-dependencies]
-proptest = "0.10"
+proptest = "1.0"
 criterion = "0.3"
 mockall = "0.9"
 
