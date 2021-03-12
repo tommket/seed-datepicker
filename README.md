@@ -3,6 +3,8 @@
 [![CI Actions Status](https://github.com/tommket/seed-datepicker/workflows/CI/badge.svg)](https://github.com/tommket/seed-datepicker/actions?query=workflow%3ACI)
 [![Build Examples Actions Status](https://github.com/tommket/seed-datepicker/workflows/Build%20Examples/badge.svg)](https://github.com/tommket/seed-datepicker/actions?query=workflow%3A%22Build+Examples%22)
 [![Crates IO badge](http://meritbadge.herokuapp.com/seed-datepicker)](https://crates.io/crates/seed-datepicker)
+[![codecov](https://codecov.io/gh/tommket/seed-datepicker/branch/master/graph/badge.svg?token=BGZ12GL2GD)](https://codecov.io/gh/tommket/seed-datepicker)
+[![dependency status](https://deps.rs/crate/seed-datepicker/0.1.0/status.svg)](https://deps.rs/crate/seed-datepicker/0.1.0)
 
 This is a customizable Datepicker component for the [Seed framework](https://seed-rs.org/) that uses [Chrono](https://crates.io/crates/chrono) for the date structures.
 
@@ -44,8 +46,9 @@ Clicking the title of the dialog changes the `DialogViewType` to `DialogViewType
 
 #### `DialogViewType::Days`
 
-- Displays a selection from all the days of a particullar month.
-- Clicking the title of the dialog changes the `DialogViewType` to `DialogViewType::Months`
+Displays a selection from all the days of a particullar month.
+
+Clicking the title of the dialog changes the `DialogViewType` to `DialogViewType::Months`
 
 - Clicking a day selects that particullar date as a `NaiveDate`
 
