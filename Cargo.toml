@@ -1,6 +1,6 @@
 [package]
 name = "seed-datepicker"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Tomas Miklovic <tommket@gmail.com>"]
 edition = "2018"
 categories = ["wasm", "web-programming", "gui"]
