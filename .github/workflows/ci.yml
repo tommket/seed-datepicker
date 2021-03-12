@@ -21,6 +21,7 @@ jobs:
     name: Test Suite
     runs-on: ubuntu-latest
     steps:
+      - name: Run Tests
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
@@ -30,6 +31,14 @@ jobs:
       - uses: actions-rs/cargo@v1
         with:
           command: test
+      - name: Generate coverage file
+        run:
+          cargo install cargo-tarpaulin --vers "^0.13"
+          cargo tarpaulin --out Xml --verbose
+      - name: Upload to Codecov
+        - uses: codecov/codecov-action@v1
+        with:
+          file: cobertura.xml
 
   fmt:
     name: Rustfmt
