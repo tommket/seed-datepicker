@@ -6,7 +6,7 @@ use num_traits::FromPrimitive;
 pub const YEARS_IN_YEAR_SELECTION: i32 = 20;
 
 /// Internal representation of viewed Year & Month
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct YearMonth {
     pub year: i32,
     pub month: Month,
@@ -98,8 +98,9 @@ mod tests {
     use chrono::{Datelike, Month, NaiveDate};
     use num_traits::FromPrimitive;
     use proptest::prelude::*;
+    use rstest::*;
 
-    use super::YearMonth;
+    use super::*;
 
     proptest! {
         #[test]
@@ -227,5 +228,66 @@ mod tests {
 
             assert!(!given_year_month.contains(&given_date));
         }
+    }
+
+    #[rstest(
+        input, expected, //
+        case::at_zero(0, 0),
+        case::in_middle(1990, 1980),
+        case::at_start(1980, 1980),
+        case::at_end(1999, 1980),
+        case::after_end(2000, 2000)
+    )]
+    fn test_year_group_start(input: i32, expected: i32) {
+        assert_eq!(expected, year_group_start(input));
+    }
+
+    #[rstest(
+        input, expected, //
+        case::at_zero(0, 19),
+        case::in_middle(1990, 1999),
+        case::at_start(1980, 1999),
+        case::at_end(1999, 1999),
+    )]
+    fn test_year_group_end(input: i32, expected: i32) {
+        assert_eq!(expected, year_group_end(input));
+    }
+
+    #[rstest(
+        input, expected, //
+        case::at_zero(0, 0..=19),
+        case::in_middle(1990, 1980..=1999),
+        case::at_start(1980, 1980..=1999),
+        case::at_end(1999, 1980..=1999),
+    )]
+    fn test_year_group_range(input: i32, expected: RangeInclusive<i32>) {
+        assert_eq!(expected, year_group_range(input));
+    }
+
+    #[fixture(year=1990, month=Month::January)]
+    fn year_month(year: i32, month: Month) -> YearMonth {
+        YearMonth { year, month }
+    }
+
+    #[rstest(
+        input, expected, //
+        case::in_middle(year_month(1990, Month::January), year_month(1979, Month::January)),
+        case::at_start(year_month(1980, Month::March), year_month(1979, Month::March)),
+        case::at_end(year_month(1999, Month::July), year_month(1979, Month::July)),
+        case::next_group(year_month(2000, Month::July), year_month(1999, Month::July)),
+    )]
+    fn test_previous_year_group(input: YearMonth, expected: YearMonth) {
+        assert_eq!(expected, input.previous_year_group());
+    }
+
+    #[rstest(
+        input, expected, //
+        case::in_middle(year_month(1990, Month::January), year_month(2000, Month::January)),
+        case::at_start(year_month(1980, Month::March), year_month(2000, Month::March)),
+        case::at_end(year_month(1999, Month::July), year_month(2000, Month::July)),
+        case::next_group(year_month(2000, Month::July), year_month(2020, Month::July)),
+    )]
+    fn test_next_year_group(input: YearMonth, expected: YearMonth) {
+        assert_eq!(expected, input.next_year_group());
     }
 }

@@ -26,6 +26,7 @@ mockall_double = "0.2"
 
 [dev-dependencies]
 proptest = "1.0"
+rstest = "0.6.4"
 criterion = "0.3"
 mockall = "0.9"
 
