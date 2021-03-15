@@ -110,4 +110,122 @@ mod tests {
             assert_eq!(Month::from_u32(date.month()).unwrap(), year_month.month);
         }
     }
+
+    proptest! {
+        #[test]
+        fn previous_month_from_january(year_given in 1..5000i32) {
+            let given = YearMonth {
+                year: year_given,
+                month: Month::January,
+            };
+
+            let previous_month = given.previous_month();
+
+            assert_eq!(Month::December, previous_month.month);
+            assert_eq!(year_given - 1, previous_month.year);
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn previous_month_not_from_january(month_num in 2..=12u32, year_given in 1..5000i32) {
+            let given = YearMonth {
+                year: year_given,
+                month: Month::from_u32(month_num).unwrap(),
+            };
+
+            let previous_month = given.previous_month();
+
+            assert_eq!(Month::from_u32(month_num - 1).unwrap(), previous_month.month);
+            assert_eq!(year_given, previous_month.year);
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn next_month_from_december(year_given in 1..5000i32) {
+            let given = YearMonth {
+                year: year_given,
+                month: Month::December,
+            };
+
+            let next_month = given.next_month();
+
+            assert_eq!(Month::January, next_month.month);
+            assert_eq!(year_given + 1, next_month.year);
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn next_month_not_from_december(month_num in 1..=11u32, year_given in 1..5000i32) {
+            let given = YearMonth {
+                year: year_given,
+                month: Month::from_u32(month_num).unwrap(),
+            };
+
+            let next_month = given.next_month();
+
+            assert_eq!(Month::from_u32(month_num + 1).unwrap(), next_month.month);
+            assert_eq!(year_given, next_month.year);
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn previous_year(month_num in 1..=12u32, year_given in 1..5000i32) {
+            let given = YearMonth {
+                year: year_given,
+                month: Month::from_u32(month_num).unwrap(),
+            };
+
+            let previous_year = given.previous_year();
+
+            assert_eq!(given.month, previous_year.month);
+            assert_eq!(year_given - 1, previous_year.year);
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn next_year(month_num in 1..=12u32, year_given in 1..5000i32) {
+            let given = YearMonth {
+                year: year_given,
+                month: Month::from_u32(month_num).unwrap(),
+            };
+
+            let next_year = given.next_year();
+
+            assert_eq!(given.month, next_year.month);
+            assert_eq!(year_given + 1, next_year.year);
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn contains_naive_date_true(given_year in 1..5000i32, given_month in 1..=12u32, given_day in 1..=28u32) {
+            let given_date = NaiveDate::from_ymd(given_year, given_month, given_day);
+            let given_year_month = YearMonth {
+                year: given_year,
+                month: Month::from_u32(given_month).unwrap(),
+            };
+
+            assert!(given_year_month.contains(&given_date));
+        }
+    }
+
+    proptest! {
+        #[test]
+        fn contains_naive_date_false(day in 1..365*5000i32, day_difference in 32..1000i32, difference_sign: bool) {
+            let given_date = NaiveDate::from_num_days_from_ce(day);
+            let given_day_difference = (if difference_sign { 1 } else { -1 }) * day_difference;
+            let given_different_date = NaiveDate::from_num_days_from_ce(day + given_day_difference);
+            let given_year_month = YearMonth {
+                year: given_different_date.year(),
+                month: Month::from_u32(given_different_date.month()).unwrap(),
+            };
+
+            assert!(!given_year_month.contains(&given_date));
+        }
+    }
 }
