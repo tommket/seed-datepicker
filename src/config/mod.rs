@@ -84,6 +84,8 @@ impl PickerConfig {
 
 #[cfg(test)]
 mod tests {
+    use mockall::predicate;
+
     use super::date_constraints::MockDateConstraints;
     use super::*;
     use crate::DialogViewType;
@@ -134,5 +136,97 @@ mod tests {
             config.err(),
             Some("The initial_date 2020-01-01 is forbidden by the date_constraints.".into())
         );
+    }
+
+    /// Test utility function to inject the mocked date constraints directly into the `PickerConfig`.
+    fn create_picker_config_with_mocked_date_constraints(
+        builder: PickerConfigBuilder,
+        mock_constraints: MockDateConstraints,
+    ) -> PickerConfig {
+        let config = builder.build().unwrap();
+        PickerConfig {
+            date_constraints: mock_constraints,
+            initial_date: *config.initial_date(),
+            initial_view_type: *config.initial_view_type(),
+            selection_type: *config.selection_type(),
+            initially_opened: *config.initially_opened(),
+            month_title_format: config.month_title_format().clone(),
+        }
+    }
+
+    #[test]
+    fn test_is_day_forbidden() {
+        let date = NaiveDate::from_ymd(2020, 1, 1);
+        let mut date_constraints_mock = MockDateConstraints::new();
+        date_constraints_mock
+            .expect_is_day_forbidden()
+            .with(predicate::eq(date))
+            .times(1)
+            .returning(|_| true);
+        let builder = PickerConfigBuilder::default();
+        let config =
+            create_picker_config_with_mocked_date_constraints(builder, date_constraints_mock);
+        assert!(config.is_day_forbidden(&date));
+    }
+
+    #[test]
+    fn test_is_month_forbidden() {
+        let year_month = YearMonth {
+            year: 2000,
+            month: Month::February,
+        };
+        let mut date_constraints_mock = MockDateConstraints::new();
+        date_constraints_mock
+            .expect_is_month_forbidden()
+            .with(predicate::eq(year_month.clone()))
+            .times(1)
+            .returning(|_| true);
+        let builder = PickerConfigBuilder::default();
+        let config =
+            create_picker_config_with_mocked_date_constraints(builder, date_constraints_mock);
+        assert!(config.is_month_forbidden(&year_month));
+    }
+
+    #[test]
+    fn test_is_year_forbidden() {
+        let year = 2000i32;
+        let mut date_constraints_mock = MockDateConstraints::new();
+        date_constraints_mock
+            .expect_is_year_forbidden()
+            .with(predicate::eq(year))
+            .times(1)
+            .returning(|_| true);
+        let builder = PickerConfigBuilder::default();
+        let config =
+            create_picker_config_with_mocked_date_constraints(builder, date_constraints_mock);
+        assert!(config.is_year_forbidden(year));
+    }
+
+    #[test]
+    fn test_is_year_group_forbidden() {
+        let year = 2000i32;
+        let mut date_constraints_mock = MockDateConstraints::new();
+        date_constraints_mock
+            .expect_is_year_group_forbidden()
+            .with(predicate::eq(year))
+            .times(1)
+            .returning(|_| true);
+        let builder = PickerConfigBuilder::default();
+        let config =
+            create_picker_config_with_mocked_date_constraints(builder, date_constraints_mock);
+        assert!(config.is_year_group_forbidden(year));
+    }
+
+    #[test]
+    fn guess_allowed_year_month_with_initial_date() {
+        let config = PickerConfigBuilder::default()
+            .initial_date(NaiveDate::from_ymd(2020, 1, 1))
+            .build()
+            .unwrap();
+        let expected = YearMonth {
+            year: 2020,
+            month: Month::January,
+        };
+        assert_eq!(expected, config.guess_allowed_year_month());
     }
 }
