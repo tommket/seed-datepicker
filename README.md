@@ -3,6 +3,7 @@
 [![CI Actions Status](https://github.com/tommket/seed-datepicker/workflows/CI/badge.svg)](https://github.com/tommket/seed-datepicker/actions?query=workflow%3ACI)
 [![Build Examples Actions Status](https://github.com/tommket/seed-datepicker/workflows/Build%20Examples/badge.svg)](https://github.com/tommket/seed-datepicker/actions?query=workflow%3A%22Build+Examples%22)
 [![Crates IO badge](http://meritbadge.herokuapp.com/seed-datepicker)](https://crates.io/crates/seed-datepicker)
+[![unsafe forbidden](https://img.shields.io/badge/unsafe-forbidden-success.svg)](https://github.com/rust-secure-code/safety-dance/)
 [![codecov](https://codecov.io/gh/tommket/seed-datepicker/branch/master/graph/badge.svg?token=BGZ12GL2GD)](https://codecov.io/gh/tommket/seed-datepicker)
 [![dependency status](https://deps.rs/crate/seed-datepicker/0.1.1/status.svg)](https://deps.rs/crate/seed-datepicker/0.1.1)
 

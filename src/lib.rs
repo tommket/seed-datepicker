@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 use chrono::{prelude::*, Duration};
 use config::PickerConfig;
 use num_traits::FromPrimitive;
