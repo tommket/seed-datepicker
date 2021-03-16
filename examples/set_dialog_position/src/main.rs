@@ -1,7 +1,8 @@
 use seed::{prelude::*, *};
 use seed_datepicker::config::PickerConfigBuilder;
+use seed_datepicker::config::date_constraints::DateConstraints;
 
-type DatePickerModel = seed_datepicker::Model;
+type DatePickerModel = seed_datepicker::Model<DateConstraints>;
 
 /// `Model` describes our app state.
 pub struct Model {
@@ -9,7 +10,7 @@ pub struct Model {
 }
 
 fn init(url: Url, orders: &mut impl Orders<Msg>) -> Model {
-    let config = PickerConfigBuilder::default().build().unwrap();
+    let config = PickerConfigBuilder::<DateConstraints>::default().build().unwrap();
     Model {
         date_picker: seed_datepicker::init(url, orders, config, Msg::DatePickerMsg),
     }

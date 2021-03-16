@@ -1,9 +1,10 @@
 use chrono::prelude::*;
 use seed::{prelude::*, *};
 use seed_datepicker::config::PickerConfigBuilder;
-use seed_datepicker::DialogViewType;
+use seed_datepicker::dialog_view_type::DialogViewType;
+use seed_datepicker::config::date_constraints::DateConstraints;
 
-type DatePickerModel = seed_datepicker::Model;
+type DatePickerModel = seed_datepicker::Model<DateConstraints>;
 
 /// `Model` describes our app state.
 pub struct Model {
@@ -11,7 +12,7 @@ pub struct Model {
 }
 
 fn init(url: Url, orders: &mut impl Orders<Msg>) -> Model {
-    let config = PickerConfigBuilder::default()
+    let config = PickerConfigBuilder::<DateConstraints>::default()
         .initial_view_type(DialogViewType::Months)
         .selection_type(DialogViewType::Months)
         .build()
