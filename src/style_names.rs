@@ -1,4 +1,4 @@
-pub const SEED_DATEPICKER: &str = "seed-datepicker";
+pub const DATEPICKER_ROOT: &str = "datepicker-root";
 pub const HEADER: &str = "header";
 pub const TITLE: &str = "title";
 pub const BUTTON: &str = "button";

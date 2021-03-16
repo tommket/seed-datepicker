@@ -1,9 +1,9 @@
-use chrono::prelude::*;
 use seed::{prelude::*, *};
+use seed_datepicker::config::date_constraints::DateConstraints;
 use seed_datepicker::config::PickerConfigBuilder;
-use seed_datepicker::DialogViewType;
+use seed_datepicker::dialog_view_type::DialogViewType;
 
-type DatePickerModel = seed_datepicker::Model;
+type DatePickerModel = seed_datepicker::Model<DateConstraints>;
 
 /// `Model` describes our app state.
 pub struct Model {

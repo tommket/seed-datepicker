@@ -1,7 +1,8 @@
 use seed::{prelude::*, *};
+use seed_datepicker::config::date_constraints::DateConstraints;
 use seed_datepicker::config::PickerConfigBuilder;
 
-type DatePickerModel = seed_datepicker::Model;
+type DatePickerModel = seed_datepicker::Model<DateConstraints>;
 
 /// `Model` describes our app state.
 pub struct Model {

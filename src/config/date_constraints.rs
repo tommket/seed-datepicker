@@ -8,6 +8,23 @@ use crate::{year_group_range, YearMonth};
 #[cfg(test)]
 use mockall::automock;
 
+/// Trait that can be implemented to create your own date constraints.
+#[cfg_attr(test, automock)]
+pub trait HasDateConstraints {
+    /// Returns true if the given date is forbidden.
+    fn is_day_forbidden(&self, date: &NaiveDate) -> bool;
+
+    /// Returns true if the entire month described by year_month_info is forbidden.
+    fn is_month_forbidden(&self, year_month_info: &YearMonth) -> bool;
+
+    /// Returns true if the entire given year is forbidden.
+    fn is_year_forbidden(&self, year: i32) -> bool;
+
+    /// Returns true if the entire group of years including the given year is forbidden.
+    /// A group of years are inclusive intervals [1980, 1999], [2000, 2019], [2020, 2039], ...
+    fn is_year_group_forbidden(&self, year: i32) -> bool;
+}
+
 /// Date constraints configuration
 #[derive(Default, Debug, Clone, Builder)]
 #[builder(setter(strip_option))]
@@ -64,24 +81,23 @@ impl DateConstraintsBuilder {
 // this is a temporary workaround for tests
 cfg_if::cfg_if! {
     if #[cfg(test)] {
-        impl Clone for MockDateConstraints {
+        impl Clone for MockHasDateConstraints {
             fn clone(&self) -> Self {
                 Self::new()
             }
         }
 
         use core::fmt;
-        impl fmt::Debug for MockDateConstraints {
+        impl fmt::Debug for MockHasDateConstraints {
             fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                f.debug_struct("MockDateConstraints").finish()
+                f.debug_struct("MockHasDateConstraints").finish()
             }
         }
     }
 }
 
-#[cfg_attr(test, automock)]
-impl DateConstraints {
-    pub fn is_day_forbidden(&self, date: &NaiveDate) -> bool {
+impl HasDateConstraints for DateConstraints {
+    fn is_day_forbidden(&self, date: &NaiveDate) -> bool {
         self.min_date.map_or(false, |min_date| &min_date > date)
             || self.max_date.map_or(false, |max_date| &max_date < date)
             || self.disabled_weekdays.contains(&date.weekday())
@@ -97,7 +113,7 @@ impl DateConstraints {
                 .any(|disabled| disabled.day() == date.day() && disabled.month() == date.month())
     }
 
-    pub fn is_month_forbidden(&self, year_month_info: &YearMonth) -> bool {
+    fn is_month_forbidden(&self, year_month_info: &YearMonth) -> bool {
         self.disabled_years.contains(&year_month_info.year)
             || self.disabled_months.contains(&year_month_info.month)
             || year_month_info
@@ -107,7 +123,7 @@ impl DateConstraints {
                 .all(|date| self.is_day_forbidden(&date))
     }
 
-    pub fn is_year_forbidden(&self, year: i32) -> bool {
+    fn is_year_forbidden(&self, year: i32) -> bool {
         self.disabled_years.contains(&year)
             || (Month::January.number_from_month()..=Month::December.number_from_month()).all(
                 |month| {
@@ -119,18 +135,15 @@ impl DateConstraints {
             )
     }
 
-    pub fn is_year_group_forbidden(&self, year: i32) -> bool {
+    fn is_year_group_forbidden(&self, year: i32) -> bool {
         year_group_range(year).all(|year| self.is_year_forbidden(year))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::year_month::YearMonth;
-
     use super::*;
     use chrono::Duration;
-    use num_traits::FromPrimitive;
     use proptest::prelude::*;
 
     proptest! {
