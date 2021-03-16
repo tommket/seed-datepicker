@@ -1,7 +1,8 @@
 use chrono::{Month, NaiveDate, Weekday};
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use seed_datepicker::config::{
-    date_constraints::DateConstraintsBuilder, PickerConfig, PickerConfigBuilder,
+    date_constraints::{DateConstraints, DateConstraintsBuilder, HasDateConstraints},
+    PickerConfig, PickerConfigBuilder,
 };
 
 criterion_group!(
@@ -18,7 +19,7 @@ criterion_group!(
 );
 criterion_main!(benches);
 
-fn create_config() -> PickerConfig {
+fn create_config() -> PickerConfig<DateConstraints> {
     PickerConfigBuilder::default()
         .initial_date(NaiveDate::from_ymd(2020, 12, 15))
         .date_constraints(
