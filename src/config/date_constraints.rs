@@ -142,11 +142,8 @@ impl HasDateConstraints for DateConstraints {
 
 #[cfg(test)]
 mod tests {
-    use crate::year_month::YearMonth;
-
     use super::*;
     use chrono::Duration;
-    use num_traits::FromPrimitive;
     use proptest::prelude::*;
 
     proptest! {

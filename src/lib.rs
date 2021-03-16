@@ -5,10 +5,7 @@ use config::{date_constraints::HasDateConstraints, PickerConfig};
 use dialog_view_type::DialogViewType;
 use num_traits::FromPrimitive;
 use seed::{prelude::*, *};
-use style_names::{
-    BODY, BUTTON, CLOSE, GRID_HEADER, HEADER, NEXT, OTHER_MONTH, PREVIOUS, SEED_DATEPICKER,
-    SELECTABLE, SELECTED, TITLE, UNAVAILABLE,
-};
+use style_names::*;
 use utils::{create_dialog_title_text, should_display_next_button, should_display_previous_button};
 use year_month::{year_group_range, YearMonth};
 
@@ -16,7 +13,7 @@ pub mod config;
 pub mod dialog_view_type;
 mod style_names;
 mod utils;
-mod year_month;
+pub mod year_month;
 
 #[macro_use]
 extern crate derive_getters;
@@ -27,7 +24,7 @@ extern crate derive_builder;
 /// `Model` describes the current datepicker state.
 pub struct Model<T>
 where
-    T: HasDateConstraints + Default,
+    T: HasDateConstraints + Default + Clone,
 {
     /// value of the date that is selected
     selected_date: Option<NaiveDate>,
@@ -48,7 +45,7 @@ where
     config: PickerConfig<T>,
 }
 
-impl<T: HasDateConstraints + std::default::Default> Model<T> {
+impl<T: HasDateConstraints + std::default::Default + Clone> Model<T> {
     /// selected value of the datepicker
     pub fn selected_date(&self) -> &Option<NaiveDate> {
         &self.selected_date
@@ -60,7 +57,7 @@ impl<T: HasDateConstraints + std::default::Default> Model<T> {
 }
 
 /// `init` describes what should happen when your app started.
-pub fn init<Ms: 'static, T: HasDateConstraints + std::default::Default>(
+pub fn init<Ms: 'static, T: HasDateConstraints + std::default::Default + Clone>(
     _: Url,
     _: &mut impl Orders<Ms>,
     config: PickerConfig<T>,
@@ -92,7 +89,7 @@ pub enum Msg {
 }
 
 /// `update` describes how to handle each `Msg`.
-pub fn update<Ms: 'static, T: HasDateConstraints + std::default::Default>(
+pub fn update<Ms: 'static, T: HasDateConstraints + std::default::Default + Clone>(
     msg: Msg,
     model: &mut Model<T>,
     orders: &mut impl Orders<Ms>,
@@ -163,12 +160,12 @@ pub fn update<Ms: 'static, T: HasDateConstraints + std::default::Default>(
 }
 
 /// `view` describes what to display.
-pub fn view<Ms: 'static, T: HasDateConstraints + std::default::Default>(
+pub fn view<Ms: 'static, T: HasDateConstraints + std::default::Default + Clone>(
     model: &Model<T>,
     to_msg: impl FnOnce(Msg) -> Ms + Clone + 'static,
 ) -> Node<Ms> {
     IF!(model.dialog_opened => div![
-        C![SEED_DATEPICKER],
+        C![DATEPICKER_ROOT],
         model.dialog_position_style.as_ref(),
         view_dialog_header(model, to_msg.clone()),
         view_dialog_body(model, to_msg),
@@ -176,7 +173,7 @@ pub fn view<Ms: 'static, T: HasDateConstraints + std::default::Default>(
     .unwrap_or(empty![])
 }
 
-fn view_dialog_header<Ms: 'static, T: HasDateConstraints + std::default::Default>(
+fn view_dialog_header<Ms: 'static, T: HasDateConstraints + std::default::Default + Clone>(
     model: &Model<T>,
     to_msg: impl FnOnce(Msg) -> Ms + Clone + 'static,
 ) -> Node<Ms> {
@@ -227,7 +224,7 @@ fn view_dialog_header<Ms: 'static, T: HasDateConstraints + std::default::Default
     ]
 }
 
-fn view_dialog_body<Ms: 'static, T: HasDateConstraints + std::default::Default>(
+fn view_dialog_body<Ms: 'static, T: HasDateConstraints + std::default::Default + Clone>(
     model: &Model<T>,
     to_msg: impl FnOnce(Msg) -> Ms + Clone + 'static,
 ) -> Node<Ms> {
@@ -238,7 +235,7 @@ fn view_dialog_body<Ms: 'static, T: HasDateConstraints + std::default::Default>(
     }
 }
 
-fn view_dialog_years<Ms: 'static, T: HasDateConstraints + std::default::Default>(
+fn view_dialog_years<Ms: 'static, T: HasDateConstraints + std::default::Default + Clone>(
     model: &Model<T>,
     to_msg: impl FnOnce(Msg) -> Ms + Clone + 'static,
 ) -> Node<Ms> {
@@ -255,7 +252,7 @@ fn view_dialog_years<Ms: 'static, T: HasDateConstraints + std::default::Default>
     ]
 }
 
-fn view_year_cell<Ms: 'static, T: HasDateConstraints + std::default::Default>(
+fn view_year_cell<Ms: 'static, T: HasDateConstraints + std::default::Default + Clone>(
     year: i32,
     model: &Model<T>,
     to_msg: impl FnOnce(Msg) -> Ms + Clone + 'static,
@@ -283,7 +280,7 @@ fn view_year_cell<Ms: 'static, T: HasDateConstraints + std::default::Default>(
     ]
 }
 
-fn view_dialog_months<Ms: 'static, T: HasDateConstraints + std::default::Default>(
+fn view_dialog_months<Ms: 'static, T: HasDateConstraints + std::default::Default + Clone>(
     model: &Model<T>,
     to_msg: impl FnOnce(Msg) -> Ms + Clone + 'static,
 ) -> Node<Ms> {
@@ -310,7 +307,7 @@ fn view_dialog_months<Ms: 'static, T: HasDateConstraints + std::default::Default
     ]
 }
 
-fn view_month_cell<Ms: 'static, T: HasDateConstraints + std::default::Default>(
+fn view_month_cell<Ms: 'static, T: HasDateConstraints + std::default::Default + Clone>(
     year_month_info: YearMonth,
     model: &Model<T>,
     to_msg: impl FnOnce(Msg) -> Ms + Clone + 'static,
@@ -338,7 +335,7 @@ fn view_month_cell<Ms: 'static, T: HasDateConstraints + std::default::Default>(
     ]
 }
 
-fn view_dialog_days<Ms: 'static, T: HasDateConstraints + std::default::Default>(
+fn view_dialog_days<Ms: 'static, T: HasDateConstraints + std::default::Default + Clone>(
     model: &Model<T>,
     to_msg: impl FnOnce(Msg) -> Ms + Clone + 'static,
 ) -> Node<Ms> {
@@ -378,7 +375,7 @@ fn view_weekday_name<Ms: 'static>(day: Weekday) -> Node<Ms> {
     ]
 }
 
-fn view_day_cell<Ms: 'static, T: HasDateConstraints + std::default::Default>(
+fn view_day_cell<Ms: 'static, T: HasDateConstraints + std::default::Default + Clone>(
     date: NaiveDate,
     model: &Model<T>,
     to_msg: impl FnOnce(Msg) -> Ms + Clone + 'static,

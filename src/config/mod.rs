@@ -10,7 +10,7 @@ use self::date_constraints::HasDateConstraints;
 #[builder(setter(strip_option))]
 #[builder(default)]
 #[builder(build_fn(validate = "Self::validate"))]
-pub struct PickerConfig<T: HasDateConstraints + Default> {
+pub struct PickerConfig<T: HasDateConstraints + Default + Clone> {
     /// possible constraints to prevent the user from selecting some dates
     #[getter(skip)]
     date_constraints: T,
@@ -32,7 +32,7 @@ pub struct PickerConfig<T: HasDateConstraints + Default> {
     month_title_format: String,
 }
 
-impl<T: HasDateConstraints + std::default::Default> HasDateConstraints for PickerConfig<T> {
+impl<T: HasDateConstraints + std::default::Default + Clone> HasDateConstraints for PickerConfig<T> {
     fn is_day_forbidden(&self, date: &NaiveDate) -> bool {
         self.date_constraints.is_day_forbidden(date)
     }
@@ -50,7 +50,7 @@ impl<T: HasDateConstraints + std::default::Default> HasDateConstraints for Picke
     }
 }
 
-impl<T: HasDateConstraints + std::default::Default> PickerConfigBuilder<T> {
+impl<T: HasDateConstraints + std::default::Default + Clone> PickerConfigBuilder<T> {
     fn validate(&self) -> Result<(), String> {
         if self.initial_view_type > self.selection_type {
             return Err("initial_view_type can have at most selection_type scale".into());
@@ -70,7 +70,7 @@ impl<T: HasDateConstraints + std::default::Default> PickerConfigBuilder<T> {
     }
 }
 
-impl<T: HasDateConstraints + std::default::Default> PickerConfig<T> {
+impl<T: HasDateConstraints + std::default::Default + Clone> PickerConfig<T> {
     pub fn guess_allowed_year_month(&self) -> YearMonth {
         if let Some(init_date) = self.initial_date {
             return init_date.into();
@@ -83,11 +83,10 @@ impl<T: HasDateConstraints + std::default::Default> PickerConfig<T> {
 
 #[cfg(test)]
 mod tests {
-    use mockall::predicate;
+    use super::*;
 
     use super::date_constraints::MockHasDateConstraints;
-    use super::*;
-    use crate::DialogViewType;
+    use mockall::predicate;
 
     #[test]
     fn picker_config_initial_view_type_greater_than_selection_type() {
