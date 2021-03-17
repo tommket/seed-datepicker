@@ -5,7 +5,7 @@
 [![Crates IO badge](http://meritbadge.herokuapp.com/seed-datepicker)](https://crates.io/crates/seed-datepicker)
 [![unsafe forbidden](https://img.shields.io/badge/unsafe-forbidden-success.svg)](https://github.com/rust-secure-code/safety-dance/)
 [![codecov](https://codecov.io/gh/tommket/seed-datepicker/branch/master/graph/badge.svg?token=BGZ12GL2GD)](https://codecov.io/gh/tommket/seed-datepicker)
-[![dependency status](https://deps.rs/crate/seed-datepicker/0.1.1/status.svg)](https://deps.rs/crate/seed-datepicker/0.1.1)
+[![dependency status](https://deps.rs/crate/seed-datepicker/1.0.0/status.svg)](https://deps.rs/crate/seed-datepicker/1.0.0)
 
 This is a customizable Datepicker component for the [Seed framework](https://seed-rs.org/) that uses [Chrono](https://crates.io/crates/chrono) for the date structures.
 
