@@ -102,14 +102,14 @@ pub fn update<Ms: 'static, T: HasDateConstraints + std::default::Default + Clone
     match msg {
         Msg::DateSelected(new_date) => {
             model.selected_date = Some(new_date);
-            model.viewed_date = new_date.into();
+            model.viewed_date = new_date;
             orders.send_msg(to_msg(Msg::CloseDialog));
             orders.send_msg(on_change);
         }
         Msg::MonthSelected(new_month) => {
             model.viewed_date = NaiveDate::from_ymd(model.viewed_date.year(), new_month, 1);
             if model.config.selection_type() == &DialogViewType::Months {
-                orders.send_msg(to_msg(Msg::DateSelected(model.viewed_date.clone())));
+                orders.send_msg(to_msg(Msg::DateSelected(model.viewed_date)));
             } else {
                 model.dialog_view_type = DialogViewType::Days;
             }
@@ -117,7 +117,7 @@ pub fn update<Ms: 'static, T: HasDateConstraints + std::default::Default + Clone
         Msg::YearSelected(new_year) => {
             model.viewed_date = NaiveDate::from_ymd(new_year, 1, 1);
             if model.config.selection_type() == &DialogViewType::Years {
-                orders.send_msg(to_msg(Msg::DateSelected(model.viewed_date.clone())));
+                orders.send_msg(to_msg(Msg::DateSelected(model.viewed_date)));
             } else {
                 model.dialog_view_type = DialogViewType::Months;
             }
