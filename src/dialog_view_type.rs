@@ -14,3 +14,31 @@ impl Default for DialogViewType {
         DialogViewType::Days
     }
 }
+
+impl DialogViewType {
+    /// returns the larger view type, if such exists, otherwise returns None
+    pub const fn larger_type(&self) -> Option<Self> {
+        match self {
+            DialogViewType::Years => None,
+            DialogViewType::Months => Some(DialogViewType::Years),
+            DialogViewType::Days => Some(DialogViewType::Months),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use rstest::*;
+
+    #[rstest(
+        expected, input, //
+        case::years(None, DialogViewType::Years),
+        case::months(Some(DialogViewType::Years), DialogViewType::Months),
+        case::days(Some(DialogViewType::Months), DialogViewType::Days),
+    )]
+    fn larger_type(expected: Option<DialogViewType>, input: DialogViewType) {
+        assert_eq!(expected, input.larger_type());
+    }
+}

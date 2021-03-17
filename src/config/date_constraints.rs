@@ -3,7 +3,7 @@ use std::collections::HashSet;
 
 use num_traits::FromPrimitive;
 
-use crate::{year_group_range, YearMonth};
+use crate::{viewed_date::ViewedDate, year_group_range};
 
 #[cfg(test)]
 use mockall::automock;
@@ -15,7 +15,7 @@ pub trait HasDateConstraints {
     fn is_day_forbidden(&self, date: &NaiveDate) -> bool;
 
     /// Returns true if the entire month described by year_month_info is forbidden.
-    fn is_month_forbidden(&self, year_month_info: &YearMonth) -> bool;
+    fn is_month_forbidden(&self, year_month_info: &NaiveDate) -> bool;
 
     /// Returns true if the entire given year is forbidden.
     fn is_year_forbidden(&self, year: i32) -> bool;
@@ -113,26 +113,22 @@ impl HasDateConstraints for DateConstraints {
                 .any(|disabled| disabled.day() == date.day() && disabled.month() == date.month())
     }
 
-    fn is_month_forbidden(&self, year_month_info: &YearMonth) -> bool {
-        self.disabled_years.contains(&year_month_info.year)
-            || self.disabled_months.contains(&year_month_info.month)
+    fn is_month_forbidden(&self, year_month_info: &NaiveDate) -> bool {
+        self.disabled_years.contains(&year_month_info.year())
+            || self
+                .disabled_months
+                .contains(&Month::from_u32(year_month_info.month()).unwrap())
             || year_month_info
                 .first_day_of_month()
                 .iter_days()
-                .take_while(|date| date.month() == year_month_info.month.number_from_month())
+                .take_while(|date| date.month() == year_month_info.month())
                 .all(|date| self.is_day_forbidden(&date))
     }
 
     fn is_year_forbidden(&self, year: i32) -> bool {
         self.disabled_years.contains(&year)
-            || (Month::January.number_from_month()..=Month::December.number_from_month()).all(
-                |month| {
-                    self.is_month_forbidden(&YearMonth {
-                        year,
-                        month: Month::from_u32(month).unwrap(),
-                    })
-                },
-            )
+            || (1..=12u32)
+                .all(|month| self.is_month_forbidden(&NaiveDate::from_ymd(year, month, 1)))
     }
 
     fn is_year_group_forbidden(&self, year: i32) -> bool {
@@ -143,34 +139,38 @@ impl HasDateConstraints for DateConstraints {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::{
+        rstest_utils::create_date,
+        viewed_date::{DayNumber, MonthNumber, YearNumber},
+    };
     use chrono::Duration;
-    use proptest::prelude::*;
+    use rstest::*;
 
-    proptest! {
-        #[test]
-        fn is_day_forbidden_default_no_bounds(day in 1..365*5000i32) {
-            let date = NaiveDate::from_num_days_from_ce(day);
-            assert!(!DateConstraints::default().is_day_forbidden(&date))
-        }
+    #[rstest(
+        tested_date, //
+        case(create_date(1, 12, 25)),
+        case(create_date(3000, 3, 22)),
+    )]
+    fn is_day_forbidden_default_no_bounds(tested_date: NaiveDate) {
+        assert!(!DateConstraints::default().is_day_forbidden(&tested_date))
     }
 
-    proptest! {
-        #[test]
-        fn is_month_forbidden_default_no_bounds(year in 1..5000i32, month_num in 1..=12u32) {
-            let month = Month::from_u32(month_num).unwrap();
-            let year_month_info = YearMonth {
-                year,
-                month,
-            };
-            assert!(!DateConstraints::default().is_month_forbidden(&year_month_info))
-        }
+    #[rstest(
+        tested_date, //
+        case(create_date(1, 12, 25)),
+        case(create_date(3000, 3, 22)),
+    )]
+    fn is_month_forbidden_default_no_bounds(tested_date: NaiveDate) {
+        assert!(!DateConstraints::default().is_month_forbidden(&tested_date))
     }
 
-    proptest! {
-        #[test]
-        fn is_year_forbidden_default_no_bounds(year in 1..5000i32) {
-            assert!(!DateConstraints::default().is_year_forbidden(year))
-        }
+    #[rstest(
+        tested_year, //
+        case(1),
+        case(3000),
+    )]
+    fn is_year_forbidden_default_no_bounds(tested_year: YearNumber) {
+        assert!(!DateConstraints::default().is_year_forbidden(tested_year))
     }
 
     #[test]
@@ -237,39 +237,59 @@ mod tests {
         assert!(config.is_day_forbidden(&(date + Duration::days(1))))
     }
 
-    proptest! {
-        #[test]
-        fn is_day_forbidden_disabled_weekday_not_allowed(weekday in 0..7u8, year in 1..5000i32, iso_week in 1..52u32) {
-            let disabled_weekday = Weekday::from_u8(weekday).unwrap();
-            let date = NaiveDate::from_isoywd(year, iso_week, disabled_weekday);
-            let config = DateConstraintsBuilder::default()
-                .disabled_weekdays([disabled_weekday].iter().cloned().collect())
-                .build()
-                .unwrap();
-            assert!(config.is_day_forbidden(&date));
-        }
+    #[rstest(
+        year => [1, 2000, 3000],
+        week => [1, 25, 51],
+        disabled_weekday => [Weekday::Mon, Weekday::Tue, Weekday::Sat],
+    )]
+    fn is_day_forbidden_disabled_weekday_not_allowed(
+        year: YearNumber,
+        week: u32,
+        disabled_weekday: Weekday,
+    ) {
+        let config = DateConstraintsBuilder::default()
+            .disabled_weekdays([disabled_weekday].iter().cloned().collect())
+            .build()
+            .unwrap();
+        assert!(config.is_day_forbidden(&NaiveDate::from_isoywd(year, week, disabled_weekday)));
     }
 
-    proptest! {
-        #[test]
-        fn is_day_forbidden_disabled_month_not_allowed(month_num in 1..=12u32, year in 1..5000i32, day in 1..=28u32) {
-            let config = DateConstraintsBuilder::default()
-                .disabled_months([Month::from_u32(month_num).unwrap()].iter().cloned().collect())
-                .build()
-                .unwrap();
-            assert!(config.is_day_forbidden(&NaiveDate::from_ymd(year, month_num, day)))
-        }
+    #[rstest(
+        year => [1, 2000, 3000],
+        disabled_month => [Month::January, Month::July, Month::December],
+        day => [1, 15, 27],
+    )]
+    fn is_day_forbidden_disabled_month_not_allowed(
+        year: YearNumber,
+        disabled_month: Month,
+        day: DayNumber,
+    ) {
+        let config = DateConstraintsBuilder::default()
+            .disabled_months([disabled_month].iter().cloned().collect())
+            .build()
+            .unwrap();
+        assert!(config.is_day_forbidden(&NaiveDate::from_ymd(
+            year,
+            disabled_month.number_from_month(),
+            day
+        )))
     }
 
-    proptest! {
-        #[test]
-        fn is_day_forbidden_disabled_year_not_allowed(month_num in 1..=12u32, year in 1..5000i32, day in 1..=28u32) {
-            let config = DateConstraintsBuilder::default()
-                .disabled_years([year].iter().cloned().collect())
-                .build()
-                .unwrap();
-            assert!(config.is_day_forbidden(&NaiveDate::from_ymd(year, month_num, day)))
-        }
+    #[rstest(
+        disabled_year => [1, 2000, 3000],
+        month => [1, 7, 12],
+        day => [1, 15, 27],
+    )]
+    fn is_day_forbidden_disabled_year_not_allowed(
+        disabled_year: YearNumber,
+        month: MonthNumber,
+        day: DayNumber,
+    ) {
+        let config = DateConstraintsBuilder::default()
+            .disabled_years([disabled_year].iter().cloned().collect())
+            .build()
+            .unwrap();
+        assert!(config.is_day_forbidden(&NaiveDate::from_ymd(disabled_year, month, day)))
     }
 
     #[test]
@@ -292,67 +312,100 @@ mod tests {
         assert!(!config.is_day_forbidden(&NaiveDate::from_ymd(2021, 1, 16)))
     }
 
-    proptest! {
-        #[test]
-        fn is_day_forbidden_disabled_yearly_dates_not_allowed(year_in_disabled in 1..5000i32, year_in_input in 1..5000i32, month in 1..=12u32, day in 1..=28u32) {
-            let disabled_yearly_date = NaiveDate::from_ymd(year_in_disabled, month, day);
-            let config = DateConstraintsBuilder::default()
-                .disabled_yearly_dates(vec![disabled_yearly_date])
-                .build()
-                .unwrap();
-            assert!(config.is_day_forbidden(&NaiveDate::from_ymd(year_in_input, month, day)))
-        }
+    #[rstest(
+        year_in_disabled => [1, 2000, 3000],
+        year_in_input => [1, 1500, 2000],
+        month => [1, 7, 12],
+        day => [1, 15, 27],
+    )]
+    fn is_day_forbidden_disabled_yearly_dates_not_allowed(
+        year_in_disabled: YearNumber,
+        year_in_input: YearNumber,
+        month: MonthNumber,
+        day: DayNumber,
+    ) {
+        let disabled_yearly_date = NaiveDate::from_ymd(year_in_disabled, month, day);
+        let config = DateConstraintsBuilder::default()
+            .disabled_yearly_dates(vec![disabled_yearly_date])
+            .build()
+            .unwrap();
+        assert!(config.is_day_forbidden(&NaiveDate::from_ymd(year_in_input, month, day)))
     }
 
-    proptest! {
-        #[test]
-        fn is_day_forbidden_disabled_monthly_dates_not_allowed(year in 1..5000i32, month in 1..=12u32, day in 1..=28u32) {
-            let config = DateConstraintsBuilder::default()
-                .disabled_monthly_dates([day].iter().cloned().collect())
-                .build()
-                .unwrap();
-            assert!(config.is_day_forbidden(&NaiveDate::from_ymd(year, month, day)))
-        }
+    #[rstest(
+        year => [1, 2000, 3000],
+        month => [1, 7, 12],
+        day => [1, 15, 27],
+    )]
+    fn is_day_forbidden_disabled_monthly_dates_not_allowed(
+        year: YearNumber,
+        month: MonthNumber,
+        day: DayNumber,
+    ) {
+        let config = DateConstraintsBuilder::default()
+            .disabled_monthly_dates([day].iter().cloned().collect())
+            .build()
+            .unwrap();
+        assert!(config.is_day_forbidden(&NaiveDate::from_ymd(year, month, day)))
     }
 
-    proptest! {
-        #[test]
-        fn is_month_forbidden_disabled_months_not_allowed(year in 1..5000i32, month_num in 1..=12u32) {
-            let month = Month::from_u32(month_num).unwrap();
-            let config = DateConstraintsBuilder::default()
-                .disabled_months([month].iter().cloned().collect())
-                .build()
-                .unwrap();
-            assert!(config.is_month_forbidden(&YearMonth {
-                year,
-                month
-            }))
-        }
+    #[rstest(
+        year => [1, 2000, 3000],
+        disabled_month => [Month::January, Month::July, Month::December],
+        day => [1, 15, 27],
+    )]
+    fn is_month_forbidden_disabled_months_not_allowed(
+        year: YearNumber,
+        disabled_month: Month,
+        day: DayNumber,
+    ) {
+        let config = DateConstraintsBuilder::default()
+            .disabled_months([disabled_month].iter().cloned().collect())
+            .build()
+            .unwrap();
+        assert!(config.is_month_forbidden(&NaiveDate::from_ymd(
+            year,
+            disabled_month.number_from_month(),
+            day
+        )))
     }
 
-    proptest! {
-        #[test]
-        fn is_month_forbidden_disabled_years_not_allowed(year in 1..5000i32, month_num in 1..=12u32) {
-            let month = Month::from_u32(month_num).unwrap();
-            let config = DateConstraintsBuilder::default()
-                .disabled_years([year].iter().cloned().collect())
-                .build()
-                .unwrap();
-            assert!(config.is_month_forbidden(&YearMonth {
-                year,
-                month
-            }))
-        }
+    #[rstest(
+        disabled_year => [1, 2000, 3000],
+        month => [1, 7, 12],
+        day => [1, 15, 27],
+    )]
+    fn is_month_forbidden_disabled_years_not_allowed(
+        disabled_year: YearNumber,
+        month: MonthNumber,
+        day: DayNumber,
+    ) {
+        let config = DateConstraintsBuilder::default()
+            .disabled_years([disabled_year].iter().cloned().collect())
+            .build()
+            .unwrap();
+        assert!(config.is_month_forbidden(&NaiveDate::from_ymd(disabled_year, month, day)))
     }
 
-    proptest! {
-        #[test]
-        fn is_year_forbidden_disabled_years_not_allowed(year in 1..5000i32) {
-            let config = DateConstraintsBuilder::default()
-                .disabled_years([year].iter().cloned().collect())
-                .build()
-                .unwrap();
-            assert!(config.is_year_forbidden(year))
-        }
+    #[rstest(
+        disabled_year => [1, 2000, 3000],
+    )]
+    fn is_year_forbidden_disabled_years_not_allowed(disabled_year: YearNumber) {
+        let config = DateConstraintsBuilder::default()
+            .disabled_years([disabled_year].iter().cloned().collect())
+            .build()
+            .unwrap();
+        assert!(config.is_year_forbidden(disabled_year))
+    }
+
+    #[rstest(
+        disabled_year_group => [1, 2000, 3000],
+    )]
+    fn is_year_group_forbidden_disabled_years_not_allowed(disabled_year_group: YearNumber) {
+        let config = DateConstraintsBuilder::default()
+            .disabled_years(year_group_range(disabled_year_group).collect())
+            .build()
+            .unwrap();
+        assert!(config.is_year_group_forbidden(disabled_year_group))
     }
 }

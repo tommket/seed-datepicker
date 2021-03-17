@@ -1,6 +1,6 @@
 pub mod date_constraints;
 
-use crate::{year_month::YearMonth, DialogViewType};
+use crate::DialogViewType;
 use chrono::prelude::*;
 
 use self::date_constraints::HasDateConstraints;
@@ -37,7 +37,7 @@ impl<T: HasDateConstraints + std::default::Default + Clone> HasDateConstraints f
         self.date_constraints.is_day_forbidden(date)
     }
 
-    fn is_month_forbidden(&self, year_month_info: &YearMonth) -> bool {
+    fn is_month_forbidden(&self, year_month_info: &NaiveDate) -> bool {
         self.date_constraints.is_month_forbidden(year_month_info)
     }
 
@@ -71,13 +71,12 @@ impl<T: HasDateConstraints + std::default::Default + Clone> PickerConfigBuilder<
 }
 
 impl<T: HasDateConstraints + std::default::Default + Clone> PickerConfig<T> {
-    pub fn guess_allowed_year_month(&self) -> YearMonth {
+    pub fn guess_allowed_year_month(&self) -> NaiveDate {
         if let Some(init_date) = self.initial_date {
-            return init_date.into();
+            return init_date;
         }
         // if none of the above constraints matched use the current_date
-        let current_date = Local::now().date().naive_local();
-        current_date.into()
+        Local::now().date().naive_local()
     }
 }
 
@@ -171,10 +170,7 @@ mod tests {
 
     #[test]
     fn test_is_month_forbidden() {
-        let year_month = YearMonth {
-            year: 2000,
-            month: Month::February,
-        };
+        let year_month = NaiveDate::from_ymd(2000, 2, 24);
         let mut date_constraints_mock = MockHasDateConstraints::new();
         date_constraints_mock
             .expect_is_month_forbidden()
@@ -219,14 +215,12 @@ mod tests {
 
     #[test]
     fn guess_allowed_year_month_with_initial_date() {
+        let initial_date = NaiveDate::from_ymd(2020, 3, 24);
         let config = PickerConfigBuilder::<MockHasDateConstraints>::default()
-            .initial_date(NaiveDate::from_ymd(2020, 1, 1))
+            .initial_date(initial_date)
             .build()
             .unwrap();
-        let expected = YearMonth {
-            year: 2020,
-            month: Month::January,
-        };
+        let expected = initial_date;
         assert_eq!(expected, config.guess_allowed_year_month());
     }
 }

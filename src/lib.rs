@@ -7,13 +7,16 @@ use num_traits::FromPrimitive;
 use seed::{prelude::*, *};
 use style_names::*;
 use utils::{create_dialog_title_text, should_display_next_button, should_display_previous_button};
-use year_month::{year_group_range, YearMonth};
+use viewed_date::{year_group_range, MonthNumber, ViewedDate, YearNumber};
 
 pub mod config;
 pub mod dialog_view_type;
 mod style_names;
 mod utils;
-pub mod year_month;
+pub mod viewed_date;
+
+#[cfg(test)]
+mod rstest_utils;
 
 #[macro_use]
 extern crate derive_getters;
@@ -32,8 +35,8 @@ where
     /// whether the dialog is shown
     dialog_opened: bool,
 
-    /// viewed time range
-    year_month_info: YearMonth,
+    /// viewed date
+    viewed_date: NaiveDate,
 
     /// dialog type
     dialog_view_type: DialogViewType,
@@ -45,7 +48,7 @@ where
     config: PickerConfig<T>,
 }
 
-impl<T: HasDateConstraints + std::default::Default + Clone> Model<T> {
+impl<T: HasDateConstraints + Default + Clone> Model<T> {
     /// selected value of the datepicker
     pub fn selected_date(&self) -> &Option<NaiveDate> {
         &self.selected_date
@@ -66,7 +69,7 @@ pub fn init<Ms: 'static, T: HasDateConstraints + std::default::Default + Clone>(
     Model {
         selected_date: *config.initial_date(),
         dialog_opened: *config.initially_opened(),
-        year_month_info: config.guess_allowed_year_month(),
+        viewed_date: config.guess_allowed_year_month(),
         dialog_view_type: *config.initial_view_type(),
         dialog_position_style: None,
         config,
@@ -76,8 +79,8 @@ pub fn init<Ms: 'static, T: HasDateConstraints + std::default::Default + Clone>(
 /// `Msg` describes the different events you can modify state with.
 pub enum Msg {
     DateSelected(NaiveDate),
-    MonthSelected(Month),
-    YearSelected(i32),
+    MonthSelected(MonthNumber),
+    YearSelected(YearNumber),
     /// open the dialog, optionally at the given (left, top) position
     OpenDialog(Option<(String, String)>),
     CloseDialog,
@@ -99,30 +102,24 @@ pub fn update<Ms: 'static, T: HasDateConstraints + std::default::Default + Clone
     match msg {
         Msg::DateSelected(new_date) => {
             model.selected_date = Some(new_date);
-            model.year_month_info = new_date.into();
+            model.viewed_date = new_date.into();
             orders.send_msg(to_msg(Msg::CloseDialog));
             orders.send_msg(on_change);
         }
         Msg::MonthSelected(new_month) => {
+            model.viewed_date = NaiveDate::from_ymd(model.viewed_date.year(), new_month, 1);
             if model.config.selection_type() == &DialogViewType::Months {
-                let new_date = NaiveDate::from_ymd(
-                    model.year_month_info.year,
-                    new_month.number_from_month(),
-                    1,
-                );
-                orders.send_msg(to_msg(Msg::DateSelected(new_date)));
+                orders.send_msg(to_msg(Msg::DateSelected(model.viewed_date.clone())));
             } else {
                 model.dialog_view_type = DialogViewType::Days;
-                model.year_month_info.month = new_month;
             }
         }
         Msg::YearSelected(new_year) => {
+            model.viewed_date = NaiveDate::from_ymd(new_year, 1, 1);
             if model.config.selection_type() == &DialogViewType::Years {
-                let new_date = NaiveDate::from_ymd(new_year, 1, 1);
-                orders.send_msg(to_msg(Msg::DateSelected(new_date)));
+                orders.send_msg(to_msg(Msg::DateSelected(model.viewed_date.clone())));
             } else {
                 model.dialog_view_type = DialogViewType::Months;
-                model.year_month_info.year = new_year;
             }
         }
         Msg::OpenDialog(position) => {
@@ -136,24 +133,22 @@ pub fn update<Ms: 'static, T: HasDateConstraints + std::default::Default + Clone
         }
         Msg::CloseDialog => model.dialog_opened = false,
         Msg::PreviousButtonClicked => {
-            model.year_month_info = match model.dialog_view_type {
-                DialogViewType::Days => model.year_month_info.previous_month(),
-                DialogViewType::Months => model.year_month_info.previous_year(),
-                DialogViewType::Years => model.year_month_info.previous_year_group(),
+            model.viewed_date = match model.dialog_view_type {
+                DialogViewType::Days => model.viewed_date.previous_month(),
+                DialogViewType::Months => model.viewed_date.previous_year(),
+                DialogViewType::Years => model.viewed_date.previous_year_group(),
             };
         }
         Msg::NextButtonClicked => {
-            model.year_month_info = match model.dialog_view_type {
-                DialogViewType::Days => model.year_month_info.next_month(),
-                DialogViewType::Months => model.year_month_info.next_year(),
-                DialogViewType::Years => model.year_month_info.next_year_group(),
+            model.viewed_date = match model.dialog_view_type {
+                DialogViewType::Days => model.viewed_date.next_month(),
+                DialogViewType::Months => model.viewed_date.next_year(),
+                DialogViewType::Years => model.viewed_date.next_year_group(),
             };
         }
         Msg::DialogTitleClicked => {
-            model.dialog_view_type = match model.dialog_view_type {
-                DialogViewType::Days => DialogViewType::Months,
-                DialogViewType::Months => DialogViewType::Years,
-                DialogViewType::Years => DialogViewType::Years,
+            if let Some(new_dialog_type) = model.dialog_view_type.larger_type() {
+                model.dialog_view_type = new_dialog_type;
             }
         }
     };
@@ -182,7 +177,7 @@ fn view_dialog_header<Ms: 'static, T: HasDateConstraints + std::default::Default
         button![
             C![BUTTON, PREVIOUS],
             style! {
-                St::Visibility => if should_display_previous_button(&model.dialog_view_type, &model.year_month_info, &model.config) { "visible" } else {"hidden"},
+                St::Visibility => if should_display_previous_button(&model.dialog_view_type, &model.viewed_date, &model.config) { "visible" } else {"hidden"},
             },
             "«",
             ev(Ev::Click, {
@@ -197,7 +192,7 @@ fn view_dialog_header<Ms: 'static, T: HasDateConstraints + std::default::Default
             },
             create_dialog_title_text(
                 &model.dialog_view_type,
-                &model.year_month_info,
+                &model.viewed_date,
                 &model.config.month_title_format()
             ),
             ev(Ev::Click, {
@@ -208,7 +203,7 @@ fn view_dialog_header<Ms: 'static, T: HasDateConstraints + std::default::Default
         button![
             C![BUTTON, NEXT],
             style! {
-                St::Visibility => if should_display_next_button(&model.dialog_view_type, &model.year_month_info, &model.config) { "visible" } else { "hidden" },
+                St::Visibility => if should_display_next_button(&model.dialog_view_type, &model.viewed_date, &model.config) { "visible" } else { "hidden" },
             },
             "»",
             ev(Ev::Click, {
@@ -239,7 +234,7 @@ fn view_dialog_years<Ms: 'static, T: HasDateConstraints + std::default::Default 
     model: &Model<T>,
     to_msg: impl FnOnce(Msg) -> Ms + Clone + 'static,
 ) -> Node<Ms> {
-    let years: Vec<Node<Ms>> = year_group_range(model.year_month_info.year)
+    let years: Vec<Node<Ms>> = year_group_range(model.viewed_date.year())
         .map(|year| view_year_cell(year, model, to_msg.clone()))
         .collect();
 
@@ -284,14 +279,10 @@ fn view_dialog_months<Ms: 'static, T: HasDateConstraints + std::default::Default
     model: &Model<T>,
     to_msg: impl FnOnce(Msg) -> Ms + Clone + 'static,
 ) -> Node<Ms> {
-    let months: Vec<Node<Ms>> = (Month::January.number_from_month()
-        ..=Month::December.number_from_month())
+    let months: Vec<Node<Ms>> = (1..=12u32)
         .map(|month| {
             view_month_cell(
-                YearMonth {
-                    year: model.year_month_info.year,
-                    month: Month::from_u32(month).unwrap(),
-                },
+                model.viewed_date.with_month(month).unwrap(),
                 model,
                 to_msg.clone(),
             )
@@ -308,17 +299,17 @@ fn view_dialog_months<Ms: 'static, T: HasDateConstraints + std::default::Default
 }
 
 fn view_month_cell<Ms: 'static, T: HasDateConstraints + std::default::Default + Clone>(
-    year_month_info: YearMonth,
+    month_to_display: NaiveDate,
     model: &Model<T>,
     to_msg: impl FnOnce(Msg) -> Ms + Clone + 'static,
 ) -> Node<Ms> {
-    let is_month_forbidden = model.config.is_month_forbidden(&year_month_info);
-    let is_month_selected = model
-        .selected_date
-        .map_or(false, |optval| year_month_info.contains(&optval));
+    let is_month_forbidden = model.config.is_month_forbidden(&month_to_display);
+    let is_month_selected = model.selected_date.map_or(false, |optval| {
+        month_to_display.contains(&model.dialog_view_type, &optval)
+    });
 
     span![
-        year_month_info.month.name(),
+        Month::from_u32(month_to_display.month()).unwrap().name(),
         C![
             if is_month_forbidden {
                 UNAVAILABLE
@@ -331,7 +322,7 @@ fn view_month_cell<Ms: 'static, T: HasDateConstraints + std::default::Default + 
             At::from("role") => "gridcell",
             At::AriaSelected => is_month_selected.as_at_value(),
         },
-        IF!(!is_month_forbidden => ev(Ev::Click, move |_| to_msg(Msg::MonthSelected(year_month_info.month)))),
+        IF!(!is_month_forbidden => ev(Ev::Click, move |_| to_msg(Msg::MonthSelected(month_to_display.month())))),
     ]
 }
 
@@ -339,7 +330,7 @@ fn view_dialog_days<Ms: 'static, T: HasDateConstraints + std::default::Default +
     model: &Model<T>,
     to_msg: impl FnOnce(Msg) -> Ms + Clone + 'static,
 ) -> Node<Ms> {
-    let first_day_of_month = model.year_month_info.first_day_of_month();
+    let first_day_of_month = model.viewed_date.first_day_of_month();
     let first_day_of_calendar = first_day_of_month
         - Duration::days(first_day_of_month.weekday().num_days_from_monday().into());
 
@@ -391,7 +382,7 @@ fn view_day_cell<Ms: 'static, T: HasDateConstraints + std::default::Default + Cl
             } else {
                 SELECTABLE
             },
-            IF!(date.month() != model.year_month_info.month.number_from_month() => OTHER_MONTH),
+            IF!(date.month() != model.viewed_date.month() => OTHER_MONTH),
             IF!(is_date_selected => SELECTED),
         ],
         attrs! {
