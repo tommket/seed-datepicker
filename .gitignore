@@ -1,4 +1,3 @@
 **/target
 **/dist
-/proptest-regressions
 **/Cargo.lock

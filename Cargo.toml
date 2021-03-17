@@ -15,21 +15,6 @@ repository = "https://github.com/tommket/seed-datepicker"
 
 [dependencies]
 seed = "0.8"
-chrono = { version = "0.4", features = ["wasmbind"] }
+chrono-datepicker-core = { version = "1.0", features = ["wasmbind"] }
+chrono = "0.4"
 num-traits = { version = "0.2", default-features = false }
-derive_builder = "0.9"
-derive-getters = "0.2"
-cfg-if = "1.0"
-
-# just some cfg macros for automocking
-mockall_double = "0.2"
-
-[dev-dependencies]
-rstest = "0.6.4"
-criterion = "0.3"
-mockall = "0.9"
-
-[[bench]]
-name = "config_benchmark"
-path = "benches/config_benchmark.rs"
-harness = false

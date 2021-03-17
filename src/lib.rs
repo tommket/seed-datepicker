@@ -1,28 +1,19 @@
 #![forbid(unsafe_code)]
 
 use chrono::{prelude::*, Duration};
-use config::{date_constraints::HasDateConstraints, PickerConfig};
-use dialog_view_type::DialogViewType;
+use chrono_datepicker_core::{
+    config::{date_constraints::HasDateConstraints, PickerConfig},
+    dialog_view_type::DialogViewType,
+    style_names::*,
+    utils::{create_dialog_title_text, should_display_next_button, should_display_previous_button},
+    viewed_date::{year_group_range, MonthNumber, ViewedDate, YearNumber},
+};
 use num_traits::FromPrimitive;
 use seed::{prelude::*, *};
-use style_names::*;
-use utils::{create_dialog_title_text, should_display_next_button, should_display_previous_button};
-use viewed_date::{year_group_range, MonthNumber, ViewedDate, YearNumber};
 
-pub mod config;
-pub mod dialog_view_type;
-mod style_names;
-mod utils;
-pub mod viewed_date;
-
-#[cfg(test)]
-mod rstest_utils;
-
-#[macro_use]
-extern crate derive_getters;
-
-#[macro_use]
-extern crate derive_builder;
+/// reexport only necessary things for using the seed-datepicker
+pub use chrono_datepicker_core::config;
+pub use chrono_datepicker_core::dialog_view_type;
 
 /// `Model` describes the current datepicker state.
 pub struct Model<T>
