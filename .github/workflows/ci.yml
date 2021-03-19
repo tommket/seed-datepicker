@@ -1,4 +1,12 @@
-on: [push, pull_request]
+on: 
+  push:
+    paths-ignore:
+    - '**.md'
+    - '**.png'
+  pull_request:
+    paths-ignore:
+    - '**.md'
+    - '**.png'
 
 name: CI
 

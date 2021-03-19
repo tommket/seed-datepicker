@@ -1,7 +1,14 @@
 name: Build Examples
 on:
   push:
+    paths-ignore:
+    - '**.md'
+    - '**.png'
     branches: [master]
+
+  # also run it as a cron-job
+  schedule:
+    - cron: '0 2 * * 5' # At 02:00 on Friday
 
 jobs:
   build-with-trunk:
