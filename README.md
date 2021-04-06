@@ -8,6 +8,8 @@
 
 This is a customizable Datepicker component for the [Seed framework](https://seed-rs.org/) that uses [Chrono](https://crates.io/crates/chrono) for the date structures.
 
+This crate provides the implementation for the Seed framework, but most of the implementation does not depend on the Seed framework and is inside the [chrono-datepicker-core](https://github.com/tommket/chrono-datepicker-core) crate.
+
 If you want to use this library, you can use the scss styling that is provided for the examples [here](static/seed-datepicker.scss), or you can make your own styling for it, all you have to do is use the correct class names and their nesting.
 
 ## Usage
