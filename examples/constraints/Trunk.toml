@@ -3,3 +3,5 @@
 target = "index.html"
 # The output dir for all final assets.
 dist = "dist"
+# Build in release mode.
+release = true

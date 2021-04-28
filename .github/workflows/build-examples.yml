@@ -36,14 +36,10 @@ jobs:
           cargo install trunk wasm-bindgen-cli
       - name: Build examples
         run: |
-          for path in examples/*; do
-            if [[ ! -d $path ]]; then
-              continue
-            fi
-            example=$(basename "$path")
-            echo "building: $example"
-            (
-              cd "$path"
-              trunk build
-            )
-          done
+          ./.github/scripts/build_examples.sh
+      - uses: jsmrcaga/action-netlify-deploy@v1.6.0
+        with:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          build_directory: dist
+          NETLIFY_DEPLOY_TO_PROD: true
