@@ -8,7 +8,7 @@ for path in examples/*; do
     echo "building: $example"
     (
         cd "$path" &&
-        trunk build --public-url "/dist/$example/" &&
+        trunk build --public-url "/$example/" &&
         # workaround until trunk can have relative "dist" paths with multiple levels
         distpath="../../dist/$example" &&
         mkdir -pv "$distpath" &&
