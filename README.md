@@ -12,6 +12,10 @@ This crate provides the implementation for the Seed framework, but most of the i
 
 If you want to use this library, you can use the scss styling that is provided for the examples [here](static/seed-datepicker.scss), or you can make your own styling for it, all you have to do is use the correct class names and their nesting.
 
+## Deployed examples
+
+See [Deployed examples](https://seed-datepicker-examples.netlify.app/).
+
 ## Usage
 
 See [Examples](https://github.com/tommket/seed-datepicker/tree/master/examples).

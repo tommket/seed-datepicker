@@ -2,6 +2,10 @@
 
 Configures various constraints to show their effects.
 
+## Deployed example
+
+See [Deployed constraints example](https://seed-datepicker-examples.netlify.app/constraints).
+
 ## Build
 
 All examples use [Trunk](https://github.com/thedodd/trunk) as the build tool.

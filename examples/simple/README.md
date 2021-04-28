@@ -2,6 +2,10 @@
 
 Does not use any extra configurations.
 
+## Deployed example
+
+See [Deployed simple example](https://seed-datepicker-examples.netlify.app/simple).
+
 ## Build
 
 All examples use [Trunk](https://github.com/thedodd/trunk) as the build tool.

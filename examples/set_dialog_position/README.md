@@ -2,6 +2,10 @@
 
 This example uses the optional parameter of `Msg::OpenDialog()` to set the dialog position according to where the mouse click occured.
 
+## Deployed example
+
+See [Deployed positioning example](https://seed-datepicker-examples.netlify.app/set_dialog_position).
+
 ## Build
 
 All examples use [Trunk](https://github.com/thedodd/trunk) as the build tool.
