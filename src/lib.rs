@@ -273,7 +273,7 @@ fn view_dialog_months<Ms: 'static, T: HasDateConstraints + std::default::Default
     let months: Vec<Node<Ms>> = (1..=12u32)
         .map(|month| {
             view_month_cell(
-                model.viewed_date.with_month(month).unwrap(),
+                NaiveDate::from_ymd(model.viewed_date.year(), month, 1),
                 model,
                 to_msg.clone(),
             )
