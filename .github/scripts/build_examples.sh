@@ -1,7 +1,7 @@
 #!/bin/sh
 
 for path in examples/*; do
-    if [[ ! -d $path ]]; then
+    if [ ! -d $path ]; then
         continue
     fi
     example=$(basename "$path")
@@ -14,4 +14,9 @@ for path in examples/*; do
         mkdir -pv "$distpath" &&
         mv -v dist/* "$distpath/"
     )
+    # exit early if any of the examples fails
+    built=$?
+    if [ "$built" != "0" ]; then
+        exit "$built"
+    fi
 done
