@@ -1,7 +1,7 @@
 #!/bin/sh
 
 for path in examples/*; do
-    if [ ! -d $path ]; then
+    if [ ! -d "$path" ]; then
         continue
     fi
     example=$(basename "$path")
