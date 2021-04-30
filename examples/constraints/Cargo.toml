@@ -9,4 +9,4 @@ edition = "2018"
 [dependencies]
 seed-datepicker = { path = "../../" }
 seed = "0.8"
-chrono = "0.4"
+chrono = { version = "0.4", default-features = false }
