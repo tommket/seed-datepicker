@@ -184,7 +184,7 @@ fn view_dialog_header<Ms: 'static, T: HasDateConstraints + std::default::Default
             create_dialog_title_text(
                 &model.dialog_view_type,
                 &model.viewed_date,
-                &model.config.month_title_format()
+                model.config.month_title_format()
             ),
             ev(Ev::Click, {
                 let to_msg = to_msg.clone();
