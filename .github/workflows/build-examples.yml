@@ -37,7 +37,7 @@ jobs:
       - name: Build examples
         run: |
           ./.github/scripts/build_examples.sh
-      - uses: jsmrcaga/action-netlify-deploy@v1.7.0
+      - uses: jsmrcaga/action-netlify-deploy@v1.7.1
         if: ${{ github.event_name != 'schedule' }}
         with:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
