@@ -1,6 +1,6 @@
 [package]
 name = "seed-datepicker"
-version = "1.0.2"
+version = "1.1.0"
 authors = ["Tomas Miklovic <tommket@gmail.com>"]
 edition = "2018"
 categories = ["wasm", "web-programming", "gui"]
@@ -14,7 +14,7 @@ repository = "https://github.com/tommket/seed-datepicker"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-seed = "0.8"
+seed = "0.9"
 chrono-datepicker-core = { version = "1.0", features = ["wasmbind"] }
 chrono = { version = "0.4", default-features = false }
 num-traits = { version = "0.2", default-features = false }
