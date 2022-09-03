@@ -4,6 +4,9 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: read
+
 # TODO: it would be nice if the release tag number after the 'v' was updated in Cargo.toml automatically
 
 jobs:
