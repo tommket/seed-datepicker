@@ -98,7 +98,8 @@ pub fn update<Ms: 'static, T: HasDateConstraints + std::default::Default + Clone
             orders.send_msg(on_change);
         }
         Msg::MonthSelected(new_month) => {
-            model.viewed_date = NaiveDate::from_ymd(model.viewed_date.year(), new_month, 1);
+            model.viewed_date = NaiveDate::from_ymd_opt(model.viewed_date.year(), new_month, 1)
+                .expect("Invalid date");
             if model.config.selection_type() == &DialogViewType::Months {
                 orders.send_msg(to_msg(Msg::DateSelected(model.viewed_date)));
             } else {
@@ -106,7 +107,7 @@ pub fn update<Ms: 'static, T: HasDateConstraints + std::default::Default + Clone
             }
         }
         Msg::YearSelected(new_year) => {
-            model.viewed_date = NaiveDate::from_ymd(new_year, 1, 1);
+            model.viewed_date = NaiveDate::from_ymd_opt(new_year, 1, 1).expect("Invalid date");
             if model.config.selection_type() == &DialogViewType::Years {
                 orders.send_msg(to_msg(Msg::DateSelected(model.viewed_date)));
             } else {
@@ -273,7 +274,7 @@ fn view_dialog_months<Ms: 'static, T: HasDateConstraints + std::default::Default
     let months: Vec<Node<Ms>> = (1..=12u32)
         .map(|month| {
             view_month_cell(
-                NaiveDate::from_ymd(model.viewed_date.year(), month, 1),
+                NaiveDate::from_ymd_opt(model.viewed_date.year(), month, 1).expect("Invalid date"),
                 model,
                 to_msg.clone(),
             )
