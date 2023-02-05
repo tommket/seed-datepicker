@@ -98,7 +98,8 @@ pub fn update<Ms: 'static, T: HasDateConstraints + std::default::Default + Clone
             orders.send_msg(on_change);
         }
         Msg::MonthSelected(new_month) => {
-            model.viewed_date = NaiveDate::from_ymd_opt(model.viewed_date.year(), new_month, 1).expect("Invalid date");
+            model.viewed_date = NaiveDate::from_ymd_opt(model.viewed_date.year(), new_month, 1)
+                .expect("Invalid date");
             if model.config.selection_type() == &DialogViewType::Months {
                 orders.send_msg(to_msg(Msg::DateSelected(model.viewed_date)));
             } else {
